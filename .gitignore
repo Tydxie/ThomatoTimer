@@ -1,0 +1,9 @@
+# ignore secrets
+Thomato Timer/Utilities/SpotifySecrets.swift
+
+# Xcode junk
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata
+.DS_Store
