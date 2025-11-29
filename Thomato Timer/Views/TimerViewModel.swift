@@ -16,12 +16,17 @@ import AudioToolbox
 
 class TimerViewModel: ObservableObject {
     @Published var timerState = TimerState()
+    @Published var projectManager = ProjectManager.shared
     
     private var timer: AnyCancellable?
-    private var startTime: Date?
+    private var sessionStartTime: Date?
+    private var accumulatedPausedTime: TimeInterval = 0
+    private var lastPauseTime: Date?
     
-    // ⭐ SPOTIFY INTEGRATION
+    // Music managers
     var spotifyManager: SpotifyManager?
+    var appleMusicManager: AppleMusicManager?
+    var selectedService: MusicService = .none
     
     var currentPhaseDuration: TimeInterval {
         switch timerState.currentPhase {
@@ -40,26 +45,31 @@ class TimerViewModel: ObservableObject {
     
     func startWarmup() {
         timerState.startWarmup()
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
         startCountdown()
-        
-        // ⭐ PLAY WARMUP SONG
         playMusicForCurrentPhase()
     }
     
     func toggleTimer() {
         if timerState.isPaused {
             // Resume
+            if let pauseStart = lastPauseTime {
+                accumulatedPausedTime += Date().timeIntervalSince(pauseStart)
+                lastPauseTime = nil
+            }
             timerState.resume()
             startCountdown()
-            // ⭐ RESUME MUSIC
             playMusicForCurrentPhase()
         } else if timerState.isRunning {
             // Pause
+            lastPauseTime = Date()
             timerState.pause()
             stopCountdown()
-            // ⭐ PAUSE MUSIC
+            // Pause music
             Task {
                 await spotifyManager?.pausePlayback()
+                appleMusicManager?.pause()
             }
         } else {
             // Start (warmup or first session)
@@ -74,11 +84,52 @@ class TimerViewModel: ObservableObject {
     func skipToNext() {
         stopCountdown()
         playBeep()
+        
+        // If skipping a work/break session, log the actual time worked so far
+        let currentPhase = timerState.currentPhase
+        if currentPhase != .warmup {
+            var actualDurationMinutes: Int
+            if let startTime = sessionStartTime {
+                let elapsedTime = Date().timeIntervalSince(startTime) - accumulatedPausedTime
+                actualDurationMinutes = max(1, Int(round(elapsedTime / 60.0)))
+                print("⏭️ Skipped - logging actual time worked: \(actualDurationMinutes) min")
+                
+                let currentProjectId = projectManager.currentProjectId
+                
+                switch currentPhase {
+                case .work:
+                    StatisticsManager.shared.logSession(
+                        type: .work,
+                        durationMinutes: actualDurationMinutes,
+                        projectId: currentProjectId
+                    )
+                case .shortBreak:
+                    StatisticsManager.shared.logSession(
+                        type: .shortBreak,
+                        durationMinutes: actualDurationMinutes,
+                        projectId: currentProjectId
+                    )
+                case .longBreak:
+                    StatisticsManager.shared.logSession(
+                        type: .longBreak,
+                        durationMinutes: actualDurationMinutes,
+                        projectId: currentProjectId
+                    )
+                case .warmup:
+                    break
+                }
+            }
+        }
+        
         timerState.startNextPhase()
+        
+        // Reset session tracking for next phase
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
+        lastPauseTime = nil
         
         if timerState.currentPhase != .warmup {
             startCountdown()
-            // ⭐ PLAY MUSIC FOR NEW PHASE
             playMusicForCurrentPhase()
         }
     }
@@ -86,18 +137,41 @@ class TimerViewModel: ObservableObject {
     func reset() {
         stopCountdown()
         timerState.reset()
+        sessionStartTime = nil
+        accumulatedPausedTime = 0
+        lastPauseTime = nil
         
-        // ⭐ STOP MUSIC
+        // Stop music
         Task {
             await spotifyManager?.pausePlayback()
+            appleMusicManager?.pause()
         }
+    }
+    
+    // MARK: - Project Switching
+    
+    func switchProject(to project: Project?) {
+        // Pause timer if running
+        if timerState.isRunning {
+            lastPauseTime = Date()
+            timerState.pause()
+            stopCountdown()
+            
+            // Pause music
+            Task {
+                await spotifyManager?.pausePlayback()
+                appleMusicManager?.pause()
+            }
+        }
+        
+        // Switch project
+        projectManager.selectProject(project)
+        print("🔄 Switched to project: \(project?.displayName ?? "Freestyle")")
     }
     
     // MARK: - Private Timer Logic
     
     private func startCountdown() {
-        startTime = Date()
-        
         timer = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -123,13 +197,60 @@ class TimerViewModel: ObservableObject {
         stopCountdown()
         playBeep()
         
-        // Auto-advance to next phase
+        let completedPhase = timerState.currentPhase
+        
+        // Calculate actual elapsed time (not configured duration)
+        var actualDurationMinutes: Int
+        if let startTime = sessionStartTime {
+            let elapsedTime = Date().timeIntervalSince(startTime) - accumulatedPausedTime
+            actualDurationMinutes = max(1, Int(round(elapsedTime / 60.0)))
+            print("⏱️ Actual time worked: \(actualDurationMinutes) min (elapsed: \(Int(elapsedTime))s, paused: \(Int(accumulatedPausedTime))s)")
+        } else {
+            // Fallback to configured duration if no start time tracked
+            actualDurationMinutes = Int(currentPhaseDuration / 60)
+            print("⚠️ No session start time, using configured duration: \(actualDurationMinutes) min")
+        }
+        
+        let currentProjectId = projectManager.currentProjectId
+        
+        // Log completed session to statistics
+        switch completedPhase {
+        case .work:
+            StatisticsManager.shared.logSession(
+                type: .work,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .shortBreak:
+            StatisticsManager.shared.logSession(
+                type: .shortBreak,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .longBreak:
+            StatisticsManager.shared.logSession(
+                type: .longBreak,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .warmup:
+            break // Don't log warmup
+        }
+        
         timerState.startNextPhase()
         
-        // If not reset (still has phases to go), start next countdown
+        // Reset session tracking for next phase
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
+        lastPauseTime = nil
+        
+        NotificationManager.shared.sendPhaseCompleteNotification(
+            phase: completedPhase,
+            nextPhase: timerState.currentPhase
+        )
+        
         if timerState.currentPhase != .warmup || timerState.isRunning {
             startCountdown()
-            // ⭐ PLAY MUSIC FOR NEW PHASE
             playMusicForCurrentPhase()
         }
     }
@@ -138,41 +259,73 @@ class TimerViewModel: ObservableObject {
         timerState.startNextPhase()
         timerState.isRunning = true
         timerState.isPaused = false
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
         startCountdown()
-        
-        // ⭐ PLAY MUSIC FOR NEW PHASE
         playMusicForCurrentPhase()
     }
     
-    // MARK: - Spotify Integration (⭐ NEW)
+    // MARK: - Music Integration
     
     private func playMusicForCurrentPhase() {
+        // Handle different music services
+        switch selectedService {
+        case .spotify:
+            playSpotifyMusic()
+        case .appleMusic:
+            playAppleMusic()
+        case .none:
+            break
+        }
+    }
+    
+    private func playSpotifyMusic() {
         guard let spotify = spotifyManager, spotify.isAuthenticated else { return }
         
         Task {
             switch timerState.currentPhase {
             case .warmup:
-                // Play warmup song if selected
                 if let trackId = spotify.selectedWarmupTrackId {
-                    print("🎵 Playing warmup track")
+                    print("🎵 Playing Spotify warmup track")
                     await spotify.playTrack(trackId: trackId)
                 }
-                
             case .work:
-                // Play work playlist if selected
                 if let playlistId = spotify.selectedWorkPlaylistId {
-                    print("🎵 Playing work playlist")
+                    print("🎵 Playing Spotify work playlist")
                     await spotify.playPlaylist(playlistId: playlistId)
                 }
-                
             case .shortBreak, .longBreak:
-                // Play break playlist if selected, otherwise pause
                 if let playlistId = spotify.selectedBreakPlaylistId {
-                    print("🎵 Playing break playlist")
+                    print("🎵 Playing Spotify break playlist")
                     await spotify.playPlaylist(playlistId: playlistId)
                 } else {
-                    print("⏸️ Pausing for break")
                     await spotify.pausePlayback()
+                }
+            }
+        }
+    }
+    
+    private func playAppleMusic() {
+        guard let appleMusic = appleMusicManager, appleMusic.isAuthorized else { return }
+        
+        Task {
+            switch timerState.currentPhase {
+            case .warmup:
+                if !appleMusic.warmupSongId.isEmpty {
+                    print("🎵 Playing Apple Music warmup song")
+                    await appleMusic.playSong(id: appleMusic.warmupSongId)
+                }
+            case .work:
+                if !appleMusic.workPlaylistId.isEmpty {
+                    print("🎵 Playing Apple Music work playlist")
+                    await appleMusic.playPlaylist(id: appleMusic.workPlaylistId)
+                }
+            case .shortBreak, .longBreak:
+                if !appleMusic.breakPlaylistId.isEmpty {
+                    print("🎵 Playing Apple Music break playlist")
+                    await appleMusic.playPlaylist(id: appleMusic.breakPlaylistId)
+                } else {
+                    appleMusic.pause()
                 }
             }
         }

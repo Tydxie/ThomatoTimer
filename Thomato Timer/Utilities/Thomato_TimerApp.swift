@@ -10,7 +10,13 @@ import SwiftUI
 @main
 @MainActor
 struct Thomato_TimerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate  // ← ADD THIS LINE
     @State private var spotifyManager = SpotifyManager()
+    
+    init() {
+        // Request notification permissions on launch
+        NotificationManager.shared.requestAuthorization()
+    }
     
     var body: some Scene {
         #if os(macOS)
@@ -25,7 +31,26 @@ struct Thomato_TimerApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
-        .commandsRemoved()  // Removes File > New Window
+        .commands {
+            CommandGroup(replacing: .newItem) { }
+            
+            CommandMenu("Timer") {
+                Button("Start/Pause") {
+                    NotificationCenter.default.post(name: .toggleTimer, object: nil)
+                }
+                .keyboardShortcut(.space, modifiers: [])
+                
+                Button("Reset") {
+                    NotificationCenter.default.post(name: .resetTimer, object: nil)
+                }
+                .keyboardShortcut(.delete, modifiers: [])
+                
+                Button("Skip Phase") {
+                    NotificationCenter.default.post(name: .skipTimer, object: nil)
+                }
+                .keyboardShortcut("s", modifiers: .command)
+            }
+        }
         #else
         WindowGroup {
             ContentView(spotifyManager: spotifyManager)
@@ -38,4 +63,12 @@ struct Thomato_TimerApp: App {
         }
         #endif
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let toggleTimer = Notification.Name("toggleTimer")
+    static let resetTimer = Notification.Name("resetTimer")
+    static let skipTimer = Notification.Name("skipTimer")
 }
