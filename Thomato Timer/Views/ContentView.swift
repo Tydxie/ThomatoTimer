@@ -29,25 +29,21 @@ struct ContentView: View {
         }
         .frame(width: 700, height: 500)  // FIXED SIZE - no resizing
         .toolbar {
-
-            // CENTER – always same width
             ToolbarItem(placement: .principal) {
-                Group {
-                    if let currentProject = viewModel.projectManager.currentProject {
-                        ProjectProgressToolbar(project: currentProject)
-                    } else {
-                        // Invisible placeholder, but SAME width as progress view
-                        Color.clear
-                    }
-                }
-                // 👇 tweak this width until the progress bar looks right
-                .frame(width: 200, alignment: .center)
-            }
-
-            // RIGHT – settings gear, locked to the trailing side
-            ToolbarItem(placement: .status) {
-                HStack(spacing: 0) {
+                HStack(spacing: 12) {
                     Spacer()
+                    
+                    // Progress bar in fixed-width container (or empty space)
+                    Group {
+                        if let currentProject = viewModel.projectManager.currentProject {
+                            ProjectProgressToolbar(project: currentProject)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 180, alignment: .trailing)
+                    
+                    // Gear icon - always in same position
                     Button(action: {
                         showingSettings = true
                     }) {
@@ -55,8 +51,7 @@ struct ContentView: View {
                             .foregroundColor(.thBlack)
                     }
                 }
-                // a little width so the Spacer has something to push against
-                .frame(width: 80)
+                .frame(width: 400, alignment: .trailing)
             }
         }
         .sheet(isPresented: $showingSettings) {
@@ -247,28 +242,31 @@ struct ProjectProgressToolbar: View {
         let progress = Double(totalHours) / Double(targetHours)
 
         HStack(spacing: 8) {
+            // Project name - fixed width, truncates if too long
             Text(project.displayName)
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: 80, alignment: .trailing)
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 6)
+            // Progress bar
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 60, height: 6)
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.blue)
-                        .frame(width: geometry.size.width * min(progress, 1.0),
-                               height: 6)
-                }
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.blue)
+                    .frame(width: 60 * min(progress, 1.0), height: 6)
             }
-            .frame(width: 80, height: 6)
 
+            // Hours progress - fixed width
             Text("\(totalHours)h/\(targetHours)h")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .monospacedDigit()
+                .frame(width: 55, alignment: .leading)
         }
     }
 }
