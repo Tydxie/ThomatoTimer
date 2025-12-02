@@ -14,6 +14,10 @@ struct ContentView: View {
     @State private var appleMusicManager = AppleMusicManager()
     @State private var showingFirstTimePrompt = false
     
+    #if os(iOS)
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
+    
     #if os(macOS)
     @StateObject private var menuBarManager = MenuBarManager()
     #endif
@@ -65,7 +69,7 @@ struct ContentView: View {
                     
                     // BOTTOM HALF - Timer UI
                     VStack(spacing: 16) {
-                        
+                        Spacer()
                         
                         // Phase Title
                         Text(viewModel.phaseTitle)
@@ -163,6 +167,13 @@ struct ContentView: View {
             }
             .onChange(of: selectedService) { _, newValue in
                 viewModel.selectedService = newValue
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .background {
+                    viewModel.handleBackgroundTransition()
+                } else if newPhase == .active && oldPhase == .background {
+                    viewModel.handleForegroundTransition()
+                }
             }
         }
     }

@@ -23,6 +23,9 @@ class TimerViewModel: ObservableObject {
     private var accumulatedPausedTime: TimeInterval = 0
     private var lastPauseTime: Date?
     
+    // For iOS background handling
+    private var backgroundTime: Date?
+    
     // Music managers
     var spotifyManager: SpotifyManager?
     var appleMusicManager: AppleMusicManager?
@@ -66,11 +69,7 @@ class TimerViewModel: ObservableObject {
             lastPauseTime = Date()
             timerState.pause()
             stopCountdown()
-            // Pause music
-            Task {
-                await spotifyManager?.pausePlayback()
-                appleMusicManager?.pause()
-            }
+            pauseMusic()
         } else {
             // Start (warmup or first session)
             if timerState.currentPhase == .warmup {
@@ -135,16 +134,48 @@ class TimerViewModel: ObservableObject {
     }
     
     func reset() {
+        // Stop timer first
         stopCountdown()
+        
+        // Reset state
         timerState.reset()
         sessionStartTime = nil
         accumulatedPausedTime = 0
         lastPauseTime = nil
+        backgroundTime = nil
         
-        // Stop music
-        Task {
-            await spotifyManager?.pausePlayback()
-            appleMusicManager?.pause()
+        // Stop music (safely)
+        pauseMusic()
+    }
+    
+    // MARK: - iOS Background Handling
+    
+    func handleBackgroundTransition() {
+        guard timerState.isRunning else { return }
+        backgroundTime = Date()
+        stopCountdown()
+        // Don't change isRunning state - we'll resume when returning
+    }
+    
+    func handleForegroundTransition() {
+        guard timerState.isRunning, let bgTime = backgroundTime else {
+            backgroundTime = nil
+            return
+        }
+        
+        // Calculate time spent in background
+        let timeInBackground = Date().timeIntervalSince(bgTime)
+        backgroundTime = nil
+        
+        // Subtract background time from remaining
+        timerState.timeRemaining = max(0, timerState.timeRemaining - timeInBackground)
+        
+        // Check if timer should have completed while in background
+        if timerState.timeRemaining <= 0 {
+            handleTimerComplete()
+        } else {
+            // Resume countdown
+            startCountdown()
         }
     }
     
@@ -156,12 +187,7 @@ class TimerViewModel: ObservableObject {
             lastPauseTime = Date()
             timerState.pause()
             stopCountdown()
-            
-            // Pause music
-            Task {
-                await spotifyManager?.pausePlayback()
-                appleMusicManager?.pause()
-            }
+            pauseMusic()
         }
         
         // Switch project
@@ -172,6 +198,10 @@ class TimerViewModel: ObservableObject {
     // MARK: - Private Timer Logic
     
     private func startCountdown() {
+        // Cancel any existing timer first
+        timer?.cancel()
+        timer = nil
+        
         timer = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -185,6 +215,12 @@ class TimerViewModel: ObservableObject {
     }
     
     private func tick() {
+        // Guard against timer firing after reset/stop
+        guard timerState.isRunning, !timerState.isPaused else {
+            stopCountdown()
+            return
+        }
+        
         guard timerState.timeRemaining > 0 else {
             handleTimerComplete()
             return
@@ -266,6 +302,23 @@ class TimerViewModel: ObservableObject {
     }
     
     // MARK: - Music Integration
+    
+    private func pauseMusic() {
+        switch selectedService {
+        case .spotify:
+            if let spotify = spotifyManager, spotify.isAuthenticated {
+                Task {
+                    await spotify.pausePlayback()
+                }
+            }
+        case .appleMusic:
+            if let appleMusic = appleMusicManager, appleMusic.isAuthorized {
+                appleMusic.pause()
+            }
+        case .none:
+            break
+        }
+    }
     
     private func playMusicForCurrentPhase() {
         // Handle different music services
