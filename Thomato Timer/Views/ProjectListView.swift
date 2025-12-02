@@ -16,6 +16,81 @@ struct ProjectListView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
+        #if os(iOS)
+        iOSLayout
+        #else
+        macOSLayout
+        #endif
+    }
+    
+    // MARK: - iOS Layout
+    
+    #if os(iOS)
+    private var iOSLayout: some View {
+        NavigationStack {
+            Group {
+                if projectManager.projects.isEmpty {
+                    emptyStateView
+                } else {
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            ForEach(projectManager.projects) { project in
+                                ProjectCard(
+                                    project: project,
+                                    onRename: {
+                                        editingProject = project
+                                    },
+                                    onDelete: {
+                                        showingDeleteConfirmation = project
+                                    }
+                                )
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("My Projects")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingNewProject = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingNewProject) {
+                NewProjectView()
+            }
+            .sheet(item: $editingProject) { project in
+                EditProjectView(project: project)
+            }
+            .alert("Delete Project", isPresented: .constant(showingDeleteConfirmation != nil)) {
+                Button("Cancel", role: .cancel) {
+                    showingDeleteConfirmation = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let project = showingDeleteConfirmation {
+                        projectManager.deleteProject(project)
+                        showingDeleteConfirmation = nil
+                    }
+                }
+            } message: {
+                if let project = showingDeleteConfirmation {
+                    Text("Are you sure you want to delete \"\(project.displayName)\"? All tracked hours for this project will be permanently deleted.")
+                }
+            }
+        }
+    }
+    #endif
+    
+    // MARK: - macOS Layout
+    
+    #if os(macOS)
+    private var macOSLayout: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
@@ -40,20 +115,7 @@ struct ProjectListView: View {
             
             // Project List
             if projectManager.projects.isEmpty {
-                VStack(spacing: 20) {
-                    Spacer()
-                    Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
-                    Text("No projects yet")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                    Text("Create your first project to start tracking your 10,000 hours")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    Spacer()
-                }
-                .padding()
+                emptyStateView
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
@@ -96,7 +158,29 @@ struct ProjectListView: View {
             }
         }
     }
+    #endif
+    
+    // MARK: - Shared Empty State
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "folder.badge.plus")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            Text("No projects yet")
+                .font(.title2)
+                .foregroundColor(.secondary)
+            Text("Create your first project to start tracking your 10,000 hours")
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .padding()
+    }
 }
+
+// MARK: - Project Card (Shared)
 
 struct ProjectCard: View {
     let project: Project
@@ -194,6 +278,8 @@ struct ProjectCard: View {
     }
 }
 
+// MARK: - New Project View
+
 struct NewProjectView: View {
     @State private var projectName = ""
     @State private var projectEmoji = ""
@@ -202,6 +288,30 @@ struct NewProjectView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
+        #if os(iOS)
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Project Name", text: $projectName)
+                    TextField("Emoji (optional)", text: $projectEmoji)
+                }
+            }
+            .navigationTitle("New Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Create") {
+                        createProject()
+                    }
+                    .bold()
+                    .disabled(projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        #else
         VStack(spacing: 20) {
             Text("New Project")
                 .font(.title)
@@ -222,13 +332,7 @@ struct NewProjectView: View {
                 .buttonStyle(.bordered)
                 
                 Button("Create") {
-                    let emoji = projectEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let finalEmoji = emoji.isEmpty ? nil : emoji
-                    _ = projectManager.createProject(
-                        name: projectName,
-                        emoji: finalEmoji
-                    )
-                    dismiss()
+                    createProject()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.thTeal)
@@ -237,8 +341,21 @@ struct NewProjectView: View {
         }
         .padding()
         .frame(width: 400, height: 200)
+        #endif
+    }
+    
+    private func createProject() {
+        let emoji = projectEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalEmoji = emoji.isEmpty ? nil : emoji
+        _ = projectManager.createProject(
+            name: projectName,
+            emoji: finalEmoji
+        )
+        dismiss()
     }
 }
+
+// MARK: - Edit Project View
 
 struct EditProjectView: View {
     let project: Project
@@ -256,6 +373,30 @@ struct EditProjectView: View {
     }
     
     var body: some View {
+        #if os(iOS)
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Project Name", text: $projectName)
+                    TextField("Emoji (optional)", text: $projectEmoji)
+                }
+            }
+            .navigationTitle("Edit Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveProject()
+                    }
+                    .bold()
+                    .disabled(projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        #else
         VStack(spacing: 20) {
             Text("Edit Project")
                 .font(.title)
@@ -276,14 +417,7 @@ struct EditProjectView: View {
                 .buttonStyle(.bordered)
                 
                 Button("Save") {
-                    let emoji = projectEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let finalEmoji = emoji.isEmpty ? nil : emoji
-                    projectManager.updateProject(
-                        project,
-                        name: projectName,
-                        emoji: finalEmoji
-                    )
-                    dismiss()
+                    saveProject()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.thTeal)
@@ -292,6 +426,18 @@ struct EditProjectView: View {
         }
         .padding()
         .frame(width: 400, height: 200)
+        #endif
+    }
+    
+    private func saveProject() {
+        let emoji = projectEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalEmoji = emoji.isEmpty ? nil : emoji
+        projectManager.updateProject(
+            project,
+            name: projectName,
+            emoji: finalEmoji
+        )
+        dismiss()
     }
 }
 

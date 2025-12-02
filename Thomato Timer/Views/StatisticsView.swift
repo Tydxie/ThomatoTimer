@@ -8,10 +8,58 @@
 import SwiftUI
 
 struct StatisticsView: View {
+    @Environment(\.dismiss) var dismiss
     @State private var statsManager = StatisticsManager.shared
     @State private var projectManager = ProjectManager.shared
     
     var body: some View {
+        #if os(iOS)
+        iOSLayout
+        #else
+        macOSLayout
+        #endif
+    }
+    
+    // MARK: - iOS Layout
+    
+    #if os(iOS)
+    private var iOSLayout: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // TODAY Section
+                    TodayStatsCard()
+                    
+                    // ALL TIME Section
+                    AllTimeStatsCard()
+                    
+                    // Member since
+                    if let firstUse = statsManager.firstUseDate {
+                        Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 10)
+                            .padding(.bottom, 20)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+            }
+            .navigationTitle("Statistics")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+    #endif
+    
+    // MARK: - macOS Layout
+    
+    #if os(macOS)
+    private var macOSLayout: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Header
@@ -39,6 +87,7 @@ struct StatisticsView: View {
         }
         .frame(width: 520, height: 600)
     }
+    #endif
 }
 
 // MARK: - TODAY Card

@@ -124,6 +124,7 @@
 		68F984BA2ED9F4EE00C1757B /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				68F984BF2ED9F64A00C1757B /* TimerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -132,7 +133,6 @@
 			isa = PBXGroup;
 			children = (
 				68F984AC2ED9F4AA00C1757B /* ContentView.swift */,
-				68F984BF2ED9F64A00C1757B /* TimerViewModel.swift */,
 				68F984C12EDA3BE600C1757B /* SettingsView.swift */,
 				6871CBA12EDA593D00C374C2 /* TrackSearchView.swift */,
 				6871CBB12EDA7ED300C374C2 /* StatisticsView.swift */,

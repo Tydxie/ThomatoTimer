@@ -134,7 +134,7 @@ struct ContentView: View {
                     .frame(height: geometry.size.height / 2)
                 }
             }
-            .background(Color.thWhite)
+            .background(Color(.systemBackground))
             .navigationTitle("Thomato Timer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
