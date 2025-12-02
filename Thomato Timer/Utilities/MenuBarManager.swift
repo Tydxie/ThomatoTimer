@@ -5,6 +5,7 @@
 //  Created by Thomas Xie on 2025/11/26.
 //
 
+#if os(macOS)
 import SwiftUI
 import AppKit
 
@@ -65,3 +66,4 @@ class MenuBarManager: ObservableObject {
         }
     }
 }
+#endif

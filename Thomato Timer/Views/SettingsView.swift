@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.dismiss) var dismiss
     
     @ObservedObject var viewModel: TimerViewModel
     @Bindable var spotifyManager: SpotifyManager
@@ -18,6 +19,252 @@ struct SettingsView: View {
     @State private var showingStats = false
     
     var body: some View {
+        #if os(iOS)
+        iOSLayout
+        #else
+        macOSLayout
+        #endif
+    }
+    
+    // MARK: - iOS Layout
+    
+    #if os(iOS)
+    private var iOSLayout: some View {
+        NavigationStack {
+            Form {
+                // Timer Settings Section
+                Section {
+                    Stepper("Work Session: \(viewModel.timerState.workDuration) min",
+                            value: $viewModel.timerState.workDuration, in: 1...60)
+                    
+                    Stepper("Short Break: \(viewModel.timerState.shortBreakDuration) min",
+                            value: $viewModel.timerState.shortBreakDuration, in: 1...30)
+                    
+                    Stepper("Long Break: \(viewModel.timerState.longBreakDuration) min",
+                            value: $viewModel.timerState.longBreakDuration, in: 1...60)
+                    
+                    HStack {
+                        Text("Warmup Duration")
+                        Spacer()
+                        Picker("", selection: $viewModel.timerState.warmupDuration) {
+                            Text("5 min").tag(5)
+                            Text("10 min").tag(10)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 120)
+                    }
+                } header: {
+                    Label("Timer Settings", systemImage: "clock")
+                }
+                
+                // Music Integration Section
+                Section {
+                    Picker("Service", selection: $selectedService) {
+                        ForEach(MusicService.allCases) { service in
+                            Text(service.rawValue).tag(service)
+                        }
+                    }
+                    
+                    if selectedService == .spotify {
+                        spotifySectioniOS
+                    } else if selectedService == .appleMusic {
+                        appleMusicSectioniOS
+                    }
+                } header: {
+                    Label("Music Integration", systemImage: "music.note")
+                }
+                
+                // Statistics Button
+                Section {
+                    Button(action: { showingStats = true }) {
+                        HStack {
+                            Text("View Statistics")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showingTrackSearch) {
+                TrackSearchView(spotifyManager: spotifyManager)
+            }
+            .sheet(isPresented: $showingAppleMusicSearch) {
+                AppleMusicSearchView(appleMusicManager: appleMusicManager)
+            }
+            .sheet(isPresented: $showingStats) {
+                StatisticsView()
+            }
+        }
+    }
+    
+    // MARK: - iOS Spotify Section
+    
+    @ViewBuilder
+    private var spotifySectioniOS: some View {
+        if !spotifyManager.isAuthenticated {
+            Button("Connect to Spotify") {
+                spotifyManager.authenticate()
+            }
+            .foregroundColor(.green)
+        } else {
+            HStack {
+                Text("Status")
+                Spacer()
+                Label("Connected", systemImage: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.caption)
+            }
+            
+            if !spotifyManager.playlists.isEmpty {
+                Picker("Work Playlist", selection: $spotifyManager.selectedWorkPlaylistId) {
+                    Text("None").tag(nil as String?)
+                    ForEach(spotifyManager.playlists) { playlist in
+                        Text(playlist.name).tag(playlist.id as String?)
+                    }
+                }
+                
+                Picker("Break Playlist", selection: $spotifyManager.selectedBreakPlaylistId) {
+                    Text("None").tag(nil as String?)
+                    ForEach(spotifyManager.playlists) { playlist in
+                        Text(playlist.name).tag(playlist.id as String?)
+                    }
+                }
+                
+                HStack {
+                    Text("Warmup Song")
+                    Spacer()
+                    if let trackName = spotifyManager.warmupTrackName {
+                        Text(trackName)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text("None")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { showingTrackSearch = true }
+                
+            } else {
+                Button("Load Playlists") {
+                    Task { await spotifyManager.fetchPlaylists() }
+                }
+            }
+            
+            Button("Disconnect", role: .destructive) {
+                Task {
+                    await spotifyManager.pausePlayback()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    await MainActor.run {
+                        spotifyManager.accessToken = nil
+                        spotifyManager.refreshToken = nil
+                        spotifyManager.isAuthenticated = false
+                        spotifyManager.playlists = []
+                        spotifyManager.selectedWorkPlaylistId = nil
+                        spotifyManager.selectedBreakPlaylistId = nil
+                        spotifyManager.selectedWarmupTrackId = nil
+                        spotifyManager.warmupTrackName = nil
+                    }
+                }
+            }
+            
+            if let expirationDate = spotifyManager.tokenExpirationDate {
+                HStack {
+                    Text("Token expires")
+                    Spacer()
+                    Text(expirationDate, style: .relative)
+                        .foregroundColor(.secondary)
+                }
+                .font(.caption)
+            }
+        }
+        
+        if let error = spotifyManager.errorMessage {
+            Text(error)
+                .foregroundColor(.red)
+                .font(.caption)
+        }
+    }
+    
+    // MARK: - iOS Apple Music Section
+    
+    @ViewBuilder
+    private var appleMusicSectioniOS: some View {
+        if !appleMusicManager.isAuthorized {
+            Button("Authorize Apple Music") {
+                Task { await appleMusicManager.requestAuthorization() }
+            }
+            .foregroundColor(.red)
+            
+            Text("Requires Apple Music subscription")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        } else {
+            HStack {
+                Text("Status")
+                Spacer()
+                Label("Authorized", systemImage: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.caption)
+            }
+            
+            if !appleMusicManager.playlists.isEmpty {
+                Picker("Work Playlist", selection: $appleMusicManager.selectedWorkPlaylistId) {
+                    Text("None").tag(nil as String?)
+                    ForEach(appleMusicManager.playlists) { playlist in
+                        Text(playlist.name).tag(playlist.id as String?)
+                    }
+                }
+                
+                Picker("Break Playlist", selection: $appleMusicManager.selectedBreakPlaylistId) {
+                    Text("None").tag(nil as String?)
+                    ForEach(appleMusicManager.playlists) { playlist in
+                        Text(playlist.name).tag(playlist.id as String?)
+                    }
+                }
+                
+                HStack {
+                    Text("Warmup Song")
+                    Spacer()
+                    if let songName = appleMusicManager.warmupSongName {
+                        Text(songName)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text("None")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { showingAppleMusicSearch = true }
+                
+            } else {
+                Button("Load Playlists") {
+                    Task { await appleMusicManager.fetchUserPlaylists() }
+                }
+            }
+        }
+        
+        if let error = appleMusicManager.errorMessage {
+            Text(error)
+                .foregroundColor(.red)
+                .font(.caption)
+        }
+    }
+    #endif
+    
+    // MARK: - macOS Layout
+    
+    #if os(macOS)
+    private var macOSLayout: some View {
         ScrollView {
             VStack(spacing: 20) {
                 HStack {
@@ -77,7 +324,6 @@ struct SettingsView: View {
                 // Music Integration Section
                 GroupBox(label: Label("Music Integration", systemImage: "music.note")) {
                     VStack(spacing: 15) {
-                        // SERVICE PICKER
                         HStack {
                             Text("Service:")
                                 .frame(width: 180, alignment: .leading)
@@ -93,11 +339,10 @@ struct SettingsView: View {
                         
                         Divider()
                         
-                        // CONDITIONAL SECTIONS BASED ON SERVICE
                         if selectedService == .spotify {
-                            spotifySection()
+                            spotifySectionMac
                         } else if selectedService == .appleMusic {
-                            appleMusicSection()
+                            appleMusicSectionMac
                         } else {
                             Text("No music service selected")
                                 .foregroundColor(.secondary)
@@ -121,9 +366,10 @@ struct SettingsView: View {
         }
     }
     
-    // SPOTIFY SECTION
+    // MARK: - macOS Spotify Section
+    
     @ViewBuilder
-    private func spotifySection() -> some View {
+    private var spotifySectionMac: some View {
         VStack(spacing: 10) {
             HStack {
                 Image(systemName: "music.note.list")
@@ -147,10 +393,8 @@ struct SettingsView: View {
                 .tint(.green)
             } else {
                 VStack(spacing: 10) {
-                    // Playlist Pickers
                     if !spotifyManager.playlists.isEmpty {
                         VStack(spacing: 8) {
-                            // Work Playlist
                             HStack {
                                 Text("Work Playlist:")
                                     .frame(width: 120, alignment: .leading)
@@ -164,7 +408,6 @@ struct SettingsView: View {
                                 .pickerStyle(.menu)
                             }
                             
-                            // Break Playlist
                             HStack {
                                 Text("Break Playlist:")
                                     .frame(width: 120, alignment: .leading)
@@ -178,40 +421,31 @@ struct SettingsView: View {
                                 .pickerStyle(.menu)
                             }
                             
-                            // Warmup Song
                             HStack {
                                 Text("Warmup Song:")
                                     .frame(width: 120, alignment: .leading)
                                 
                                 if let trackName = spotifyManager.warmupTrackName {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(trackName)
-                                            .lineLimit(1)
-                                            .font(.caption)
-                                    }
+                                    Text(trackName)
+                                        .lineLimit(1)
+                                        .font(.caption)
                                     Spacer()
-                                    Button("Change") {
-                                        showingTrackSearch = true
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .font(.caption)
+                                    Button("Change") { showingTrackSearch = true }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption)
                                 } else {
                                     Text("None selected")
                                         .foregroundColor(.secondary)
                                         .font(.caption)
                                     Spacer()
-                                    Button("Select Song") {
-                                        showingTrackSearch = true
-                                    }
-                                    .buttonStyle(.bordered)
+                                    Button("Select Song") { showingTrackSearch = true }
+                                        .buttonStyle(.bordered)
                                 }
                             }
                         }
                     } else {
                         Button("Load Playlists") {
-                            Task {
-                                await spotifyManager.fetchPlaylists()
-                            }
+                            Task { await spotifyManager.fetchPlaylists() }
                         }
                         .buttonStyle(.bordered)
                     }
@@ -219,14 +453,8 @@ struct SettingsView: View {
                     HStack(spacing: 10) {
                         Button("Disconnect") {
                             Task {
-                                // Pause music first (while we still have credentials)
                                 await spotifyManager.pausePlayback()
-                                print("🎵 Music pause command sent")
-                                
-                                // Wait a moment for command to process
-                                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                
-                                // Now clear credentials
+                                try? await Task.sleep(nanoseconds: 500_000_000)
                                 await MainActor.run {
                                     spotifyManager.accessToken = nil
                                     spotifyManager.refreshToken = nil
@@ -236,17 +464,13 @@ struct SettingsView: View {
                                     spotifyManager.selectedBreakPlaylistId = nil
                                     spotifyManager.selectedWarmupTrackId = nil
                                     spotifyManager.warmupTrackName = nil
-                                    
-                                    print("🎵 Spotify disconnected")
                                 }
                             }
                         }
                         .buttonStyle(.bordered)
                         
                         Button("Refresh Token") {
-                            Task {
-                                await spotifyManager.refreshAccessToken()
-                            }
+                            Task { await spotifyManager.refreshAccessToken() }
                         }
                         .buttonStyle(.bordered)
                     }
@@ -268,9 +492,10 @@ struct SettingsView: View {
         }
     }
     
-    // APPLE MUSIC SECTION
+    // MARK: - macOS Apple Music Section
+    
     @ViewBuilder
-    private func appleMusicSection() -> some View {
+    private var appleMusicSectionMac: some View {
         VStack(spacing: 10) {
             HStack {
                 Image(systemName: "music.note")
@@ -288,9 +513,7 @@ struct SettingsView: View {
             
             if !appleMusicManager.isAuthorized {
                 Button("Authorize Apple Music") {
-                    Task {
-                        await appleMusicManager.requestAuthorization()
-                    }
+                    Task { await appleMusicManager.requestAuthorization() }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
@@ -300,10 +523,8 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             } else {
                 VStack(spacing: 10) {
-                    // Playlist Pickers
                     if !appleMusicManager.playlists.isEmpty {
                         VStack(spacing: 8) {
-                            // Work Playlist
                             HStack {
                                 Text("Work Playlist:")
                                     .frame(width: 120, alignment: .leading)
@@ -317,7 +538,6 @@ struct SettingsView: View {
                                 .pickerStyle(.menu)
                             }
                             
-                            // Break Playlist
                             HStack {
                                 Text("Break Playlist:")
                                     .frame(width: 120, alignment: .leading)
@@ -331,7 +551,6 @@ struct SettingsView: View {
                                 .pickerStyle(.menu)
                             }
                             
-                            // Warmup Song
                             HStack {
                                 Text("Warmup Song:")
                                     .frame(width: 120, alignment: .leading)
@@ -341,28 +560,22 @@ struct SettingsView: View {
                                         .lineLimit(1)
                                         .font(.caption)
                                     Spacer()
-                                    Button("Change") {
-                                        showingAppleMusicSearch = true
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .font(.caption)
+                                    Button("Change") { showingAppleMusicSearch = true }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption)
                                 } else {
                                     Text("None selected")
                                         .foregroundColor(.secondary)
                                         .font(.caption)
                                     Spacer()
-                                    Button("Select Song") {
-                                        showingAppleMusicSearch = true
-                                    }
-                                    .buttonStyle(.bordered)
+                                    Button("Select Song") { showingAppleMusicSearch = true }
+                                        .buttonStyle(.bordered)
                                 }
                             }
                         }
                     } else {
                         Button("Load Playlists") {
-                            Task {
-                                await appleMusicManager.fetchUserPlaylists()
-                            }
+                            Task { await appleMusicManager.fetchUserPlaylists() }
                         }
                         .buttonStyle(.bordered)
                     }
@@ -377,6 +590,7 @@ struct SettingsView: View {
             }
         }
     }
+    #endif
 }
 
 #Preview {

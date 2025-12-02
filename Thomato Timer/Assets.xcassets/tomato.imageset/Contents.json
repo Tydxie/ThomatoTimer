@@ -1,19 +1,39 @@
 {
   "images" : [
     {
-      "filename" : "Final_border.png",
-      "idiom" : "universal",
+      "filename" : "INDEX PILLION源文件v4.jpeg",
+      "idiom" : "iphone",
       "scale" : "1x"
     },
     {
-      "filename" : "Final_border@2x.png",
-      "idiom" : "universal",
+      "filename" : "INDEX PILLION源文件v4@2x.jpeg",
+      "idiom" : "iphone",
       "scale" : "2x"
     },
     {
-      "filename" : "Final_border@3x.png",
-      "idiom" : "universal",
+      "filename" : "INDEX PILLION源文件v4@3x.jpeg",
+      "idiom" : "iphone",
       "scale" : "3x"
+    },
+    {
+      "filename" : "INDEX PILLION源文件v4 1.jpeg",
+      "idiom" : "ipad",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "INDEX PILLION源文件v4@2x 1.jpeg",
+      "idiom" : "ipad",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "Final_border 2.png",
+      "idiom" : "mac",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "Final_border@2x 2.png",
+      "idiom" : "mac",
+      "scale" : "2x"
     }
   ],
   "info" : {

@@ -5,6 +5,7 @@
 //  Created by Thomas Xie on 2025/11/26.
 //
 
+#if os(macOS)
 import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -14,3 +15,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 }
+#endif

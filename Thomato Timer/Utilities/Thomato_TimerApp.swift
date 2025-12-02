@@ -10,7 +10,10 @@ import SwiftUI
 @main
 @MainActor
 struct Thomato_TimerApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate  // ← ADD THIS LINE
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
+    
     @State private var spotifyManager = SpotifyManager()
     
     init() {

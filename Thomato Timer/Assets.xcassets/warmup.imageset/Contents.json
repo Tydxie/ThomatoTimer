@@ -1,19 +1,51 @@
 {
   "images" : [
     {
+      "filename" : "ChatGPT Image Dec 2, 2025, 10_51_47 AM.png",
+      "idiom" : "iphone",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "ChatGPT Image Dec 2, 2025, 10_51_47 AM@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "ChatGPT Image Dec 2, 2025, 10_51_47 AM@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x"
+    },
+    {
       "filename" : "warmup.png",
-      "idiom" : "universal",
+      "idiom" : "ipad",
       "scale" : "1x"
     },
     {
       "filename" : "warmup@2x.png",
-      "idiom" : "universal",
+      "idiom" : "ipad",
       "scale" : "2x"
     },
     {
-      "filename" : "warmup@3x.png",
-      "idiom" : "universal",
-      "scale" : "3x"
+      "filename" : "warmup 1.png",
+      "idiom" : "ipad",
+      "scale" : "1x",
+      "subtype" : "mac-catalyst"
+    },
+    {
+      "filename" : "warmup@2x 1.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "subtype" : "mac-catalyst"
+    },
+    {
+      "filename" : "warmup 2.png",
+      "idiom" : "mac",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "warmup@2x 2.png",
+      "idiom" : "mac",
+      "scale" : "2x"
     }
   ],
   "info" : {
