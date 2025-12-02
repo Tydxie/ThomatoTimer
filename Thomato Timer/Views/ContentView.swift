@@ -171,7 +171,7 @@ struct ContentView: View {
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if newPhase == .background {
                     viewModel.handleBackgroundTransition()
-                } else if newPhase == .active && oldPhase == .background {
+                } else if newPhase == .active {
                     viewModel.handleForegroundTransition()
                 }
             }
