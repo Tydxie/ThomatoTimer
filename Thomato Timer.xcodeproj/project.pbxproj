@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		680EED982EDE37FC00D543E6 /* AppleMusicSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680EED972EDE37FC00D543E6 /* AppleMusicSearchView.swift */; };
 		6871CBA22EDA593D00C374C2 /* TrackSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBA12EDA593D00C374C2 /* TrackSearchView.swift */; };
 		6871CBA42EDA72B000C374C2 /* MusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBA32EDA72B000C374C2 /* MusicService.swift */; };
 		6871CBA62EDA72E000C374C2 /* AppleMusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBA52EDA72E000C374C2 /* AppleMusicManager.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		680EED972EDE37FC00D543E6 /* AppleMusicSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicSearchView.swift; sourceTree = "<group>"; };
 		6871CBA02EDA4F3E00C374C2 /* Thomato-Timer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Thomato-Timer-Info.plist"; sourceTree = SOURCE_ROOT; };
 		6871CBA12EDA593D00C374C2 /* TrackSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSearchView.swift; sourceTree = "<group>"; };
 		6871CBA32EDA72B000C374C2 /* MusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicService.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 				6871CBB12EDA7ED300C374C2 /* StatisticsView.swift */,
 				6871CBB72EDA82F900C374C2 /* ProjectListView.swift */,
 				6871CBB92EDA839800C374C2 /* ProjectSwitcherView.swift */,
+				680EED972EDE37FC00D543E6 /* AppleMusicSearchView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -235,6 +238,7 @@
 				68F984C22EDA3BE600C1757B /* SettingsView.swift in Sources */,
 				6871CBAE2EDA7C7500C374C2 /* AppDelegate.swift in Sources */,
 				68F984C02ED9F64A00C1757B /* TimerViewModel.swift in Sources */,
+				680EED982EDE37FC00D543E6 /* AppleMusicSearchView.swift in Sources */,
 				68F984C42EDA418800C1757B /* SpotifyConfig.swift in Sources */,
 				6871CBBA2EDA839800C374C2 /* ProjectSwitcherView.swift in Sources */,
 				6871CBB82EDA82F900C374C2 /* ProjectListView.swift in Sources */,

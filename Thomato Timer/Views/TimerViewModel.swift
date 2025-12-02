@@ -311,19 +311,19 @@ class TimerViewModel: ObservableObject {
         Task {
             switch timerState.currentPhase {
             case .warmup:
-                if !appleMusic.warmupSongId.isEmpty {
+                if let songId = appleMusic.selectedWarmupSongId {
                     print("🎵 Playing Apple Music warmup song")
-                    await appleMusic.playSong(id: appleMusic.warmupSongId)
+                    await appleMusic.playSong(id: songId)
                 }
             case .work:
-                if !appleMusic.workPlaylistId.isEmpty {
+                if let playlistId = appleMusic.selectedWorkPlaylistId {
                     print("🎵 Playing Apple Music work playlist")
-                    await appleMusic.playPlaylist(id: appleMusic.workPlaylistId)
+                    await appleMusic.playPlaylist(id: playlistId)
                 }
             case .shortBreak, .longBreak:
-                if !appleMusic.breakPlaylistId.isEmpty {
+                if let playlistId = appleMusic.selectedBreakPlaylistId {
                     print("🎵 Playing Apple Music break playlist")
-                    await appleMusic.playPlaylist(id: appleMusic.breakPlaylistId)
+                    await appleMusic.playPlaylist(id: playlistId)
                 } else {
                     appleMusic.pause()
                 }

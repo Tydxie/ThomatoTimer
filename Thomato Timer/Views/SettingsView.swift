@@ -14,6 +14,7 @@ struct SettingsView: View {
     @Bindable var appleMusicManager: AppleMusicManager
     @Binding var selectedService: MusicService
     @State private var showingTrackSearch = false
+    @State private var showingAppleMusicSearch = false
     @State private var showingStats = false
     
     var body: some View {
@@ -111,6 +112,9 @@ struct SettingsView: View {
         .frame(width: 480, height: 400)
         .sheet(isPresented: $showingTrackSearch) {
             TrackSearchView(spotifyManager: spotifyManager)
+        }
+        .sheet(isPresented: $showingAppleMusicSearch) {
+            AppleMusicSearchView(appleMusicManager: appleMusicManager)
         }
         .sheet(isPresented: $showingStats) {
             StatisticsView()
@@ -295,36 +299,74 @@ struct SettingsView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             } else {
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Warmup Song ID:")
-                            .frame(width: 120, alignment: .leading)
-                        TextField("Apple Music Song ID", text: $appleMusicManager.warmupSongId)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.caption)
-                    }
-                    
-                    HStack {
-                        Text("Work Playlist ID:")
-                            .frame(width: 120, alignment: .leading)
-                        TextField("Apple Music Playlist ID", text: $appleMusicManager.workPlaylistId)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.caption)
-                    }
-                    
-                    HStack {
-                        Text("Break Playlist ID:")
-                            .frame(width: 120, alignment: .leading)
-                        TextField("Apple Music Playlist ID", text: $appleMusicManager.breakPlaylistId)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.caption)
+                VStack(spacing: 10) {
+                    // Playlist Pickers
+                    if !appleMusicManager.playlists.isEmpty {
+                        VStack(spacing: 8) {
+                            // Work Playlist
+                            HStack {
+                                Text("Work Playlist:")
+                                    .frame(width: 120, alignment: .leading)
+                                
+                                Picker("", selection: $appleMusicManager.selectedWorkPlaylistId) {
+                                    Text("None").tag(nil as String?)
+                                    ForEach(appleMusicManager.playlists) { playlist in
+                                        Text(playlist.name).tag(playlist.id as String?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            
+                            // Break Playlist
+                            HStack {
+                                Text("Break Playlist:")
+                                    .frame(width: 120, alignment: .leading)
+                                
+                                Picker("", selection: $appleMusicManager.selectedBreakPlaylistId) {
+                                    Text("None").tag(nil as String?)
+                                    ForEach(appleMusicManager.playlists) { playlist in
+                                        Text(playlist.name).tag(playlist.id as String?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            
+                            // Warmup Song
+                            HStack {
+                                Text("Warmup Song:")
+                                    .frame(width: 120, alignment: .leading)
+                                
+                                if let songName = appleMusicManager.warmupSongName {
+                                    Text(songName)
+                                        .lineLimit(1)
+                                        .font(.caption)
+                                    Spacer()
+                                    Button("Change") {
+                                        showingAppleMusicSearch = true
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .font(.caption)
+                                } else {
+                                    Text("None selected")
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                    Spacer()
+                                    Button("Select Song") {
+                                        showingAppleMusicSearch = true
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+                            }
+                        }
+                    } else {
+                        Button("Load Playlists") {
+                            Task {
+                                await appleMusicManager.fetchUserPlaylists()
+                            }
+                        }
+                        .buttonStyle(.bordered)
                     }
                 }
-                
-                Text("Find IDs in Apple Music URLs")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 5)
             }
             
             if let error = appleMusicManager.errorMessage {

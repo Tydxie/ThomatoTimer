@@ -9,20 +9,56 @@ import Foundation
 import MusicKit
 import Observation
 
+// Simple playlist model for picker
+struct AppleMusicPlaylistItem: Identifiable, Hashable {
+    let id: String
+    let name: String
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: AppleMusicPlaylistItem, rhs: AppleMusicPlaylistItem) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+// Simple song model for search results
+struct AppleMusicSongItem: Identifiable {
+    let id: String
+    let name: String
+    let artistName: String
+    let albumName: String
+    
+    var displayName: String {
+        "\(name) - \(artistName)"
+    }
+}
+
 @Observable
 final class AppleMusicManager {
     var isAuthorized = false
-    var warmupSongId: String = ""
-    var workPlaylistId: String = ""
-    var breakPlaylistId: String = ""
     
+    // Selected IDs
+    var selectedWarmupSongId: String?
+    var selectedWorkPlaylistId: String?
+    var selectedBreakPlaylistId: String?
+    
+    // Display names
     var warmupSongName: String?
     var workPlaylistName: String?
     var breakPlaylistName: String?
     
+    // User's playlists from library
+    var playlists: [AppleMusicPlaylistItem] = []
+    
+    // Search results for songs
+    var searchResults: [AppleMusicSongItem] = []
+    
     var errorMessage: String?
     
-    // Check authorization status
+    // MARK: - Authorization
+    
     func checkAuthorization() async {
         let status = await MusicAuthorization.request()
         
@@ -42,16 +78,84 @@ final class AppleMusicManager {
         }
     }
     
-    // Request authorization
     func requestAuthorization() async {
         await checkAuthorization()
+        if isAuthorized {
+            await fetchUserPlaylists()
+        }
     }
     
-    // Play song by Apple Music ID
+    // MARK: - Fetch User's Playlists
+    
+    func fetchUserPlaylists() async {
+        guard isAuthorized else { return }
+        
+        do {
+            // Fetch playlists from user's library
+            var request = MusicLibraryRequest<Playlist>()
+            request.sort(by: \.name, ascending: true)
+            let response = try await request.response()
+            
+            let items = response.items.map { playlist in
+                AppleMusicPlaylistItem(
+                    id: playlist.id.rawValue,
+                    name: playlist.name
+                )
+            }
+            
+            await MainActor.run {
+                self.playlists = items
+                print("🎵 Loaded \(items.count) Apple Music playlists")
+            }
+        } catch {
+            print("❌ Error fetching playlists: \(error)")
+            await MainActor.run {
+                self.errorMessage = "Failed to load playlists: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    // MARK: - Search Songs
+    
+    func searchSongs(query: String) async {
+        guard isAuthorized, !query.isEmpty else {
+            await MainActor.run {
+                self.searchResults = []
+            }
+            return
+        }
+        
+        do {
+            var request = MusicCatalogSearchRequest(term: query, types: [Song.self])
+            request.limit = 25
+            let response = try await request.response()
+            
+            let items = response.songs.map { song in
+                AppleMusicSongItem(
+                    id: song.id.rawValue,
+                    name: song.title,
+                    artistName: song.artistName,
+                    albumName: song.albumTitle ?? ""
+                )
+            }
+            
+            await MainActor.run {
+                self.searchResults = items
+            }
+        } catch {
+            print("❌ Search error: \(error)")
+            await MainActor.run {
+                self.searchResults = []
+            }
+        }
+    }
+    
+    // MARK: - Playback
+    
     func playSong(id: String) async {
         guard isAuthorized else {
             await MainActor.run {
-                errorMessage = "Apple Music not authorized. Enable in System Settings → Privacy → Media & Apple Music"
+                errorMessage = "Apple Music not authorized"
             }
             return
         }
@@ -70,7 +174,7 @@ final class AppleMusicManager {
                 }
             } else {
                 await MainActor.run {
-                    errorMessage = "Song not found. Please check the song ID."
+                    errorMessage = "Song not found"
                 }
             }
         } catch {
@@ -81,20 +185,36 @@ final class AppleMusicManager {
         }
     }
     
-    // Play playlist by Apple Music ID
     func playPlaylist(id: String) async {
         guard isAuthorized else {
             await MainActor.run {
-                errorMessage = "Apple Music not authorized. Enable in System Settings → Privacy → Media & Apple Music"
+                errorMessage = "Apple Music not authorized"
             }
             return
         }
         
         do {
-            let request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(id))
-            let response = try await request.response()
+            // Try library playlist first
+            var libraryRequest = MusicLibraryRequest<Playlist>()
+            libraryRequest.filter(matching: \.id, equalTo: MusicItemID(id))
+            let libraryResponse = try await libraryRequest.response()
             
-            if let playlist = response.items.first {
+            if let playlist = libraryResponse.items.first {
+                let player = ApplicationMusicPlayer.shared
+                player.queue = [playlist]
+                try await player.play()
+                print("🎵 Playing playlist: \(playlist.name)")
+                await MainActor.run {
+                    errorMessage = nil
+                }
+                return
+            }
+            
+            // Fallback to catalog playlist
+            let catalogRequest = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(id))
+            let catalogResponse = try await catalogRequest.response()
+            
+            if let playlist = catalogResponse.items.first {
                 let player = ApplicationMusicPlayer.shared
                 player.queue = [playlist]
                 try await player.play()
@@ -104,7 +224,7 @@ final class AppleMusicManager {
                 }
             } else {
                 await MainActor.run {
-                    errorMessage = "Playlist not found. Please check the playlist ID."
+                    errorMessage = "Playlist not found"
                 }
             }
         } catch {
@@ -115,13 +235,11 @@ final class AppleMusicManager {
         }
     }
     
-    // Pause playback
     func pause() {
         ApplicationMusicPlayer.shared.pause()
         print("⏸️ Music paused")
     }
     
-    // Resume playback
     func play() {
         Task {
             do {
@@ -133,33 +251,10 @@ final class AppleMusicManager {
         }
     }
     
-    // Search for songs
-    func searchSongs(query: String) async -> [Song] {
-        guard isAuthorized, !query.isEmpty else { return [] }
-        
-        do {
-            var request = MusicCatalogSearchRequest(term: query, types: [Song.self])
-            request.limit = 20
-            let response = try await request.response()
-            return response.songs.map { $0 }
-        } catch {
-            print("❌ Search error: \(error)")
-            return []
-        }
-    }
+    // MARK: - Clear Selection
     
-    // Search for playlists
-    func searchPlaylists(query: String) async -> [Playlist] {
-        guard isAuthorized, !query.isEmpty else { return [] }
-        
-        do {
-            var request = MusicCatalogSearchRequest(term: query, types: [Playlist.self])
-            request.limit = 20
-            let response = try await request.response()
-            return response.playlists.map { $0 }
-        } catch {
-            print("❌ Search error: \(error)")
-            return []
-        }
+    func clearWarmupSong() {
+        selectedWarmupSongId = nil
+        warmupSongName = nil
     }
 }
