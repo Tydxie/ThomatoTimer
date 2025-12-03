@@ -51,7 +51,8 @@ struct AppleMusicSearchView: View {
                         id: song.id.rawValue,
                         name: song.title,
                         artistName: song.artistName,
-                        albumName: song.albumTitle ?? ""
+                        albumName: song.albumTitle ?? "",
+                        artworkURL: song.artwork?.url(width: 300, height: 300)
                     )
                 }
                 

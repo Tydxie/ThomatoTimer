@@ -29,6 +29,7 @@ struct AppleMusicSongItem: Identifiable {
     let name: String
     let artistName: String
     let albumName: String
+    let artworkURL: URL?
     
     var displayName: String {
         "\(name) - \(artistName)"
@@ -57,6 +58,17 @@ final class AppleMusicManager {
     var searchResults: [AppleMusicSongItem] = []
     
     var errorMessage: String?
+    
+    // MARK: - Current Playback Artwork
+    var currentArtworkURL: URL?
+    var isPlaying = false
+    
+    // MARK: - Artwork Size (platform-specific)
+    #if os(iOS)
+    private let artworkSize = 1024
+    #else
+    private let artworkSize = 1024
+    #endif
     
     // MARK: - Warmup (call this to pre-initialize MusicKit)
     
@@ -158,7 +170,8 @@ final class AppleMusicManager {
                     id: song.id.rawValue,
                     name: song.title,
                     artistName: song.artistName,
-                    albumName: song.albumTitle ?? ""
+                    albumName: song.albumTitle ?? "",
+                    artworkURL: song.artwork?.url(width: artworkSize, height: artworkSize)
                 )
             }
             
@@ -173,6 +186,56 @@ final class AppleMusicManager {
                 self.errorMessage = "Search failed: \(error.localizedDescription)"
             }
         }
+    }
+    
+    // MARK: - Artwork Helpers
+    
+    /// Get artwork URL for a song by ID
+    func getSongArtwork(songId: String) async -> URL? {
+        guard isAuthorized else { return nil }
+        
+        do {
+            let request = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: MusicItemID(songId))
+            let response = try await request.response()
+            
+            if let song = response.items.first {
+                return song.artwork?.url(width: artworkSize, height: artworkSize)
+            }
+            return nil
+        } catch {
+            print("❌ Error fetching song artwork: \(error)")
+            return nil
+        }
+    }
+    
+    /// Get artwork URL for a playlist by ID
+    func getPlaylistArtwork(playlistId: String) async -> URL? {
+        guard isAuthorized else { return nil }
+        
+        // Check cached playlists first
+        if let playlist = libraryPlaylists.first(where: { $0.id.rawValue == playlistId }) {
+            return playlist.artwork?.url(width: artworkSize, height: artworkSize)
+        }
+        
+        // Fetch from library if not cached
+        do {
+            let request = MusicLibraryRequest<Playlist>()
+            let response = try await request.response()
+            
+            if let playlist = response.items.first(where: { $0.id.rawValue == playlistId }) {
+                return playlist.artwork?.url(width: artworkSize, height: artworkSize)
+            }
+            return nil
+        } catch {
+            print("❌ Error fetching playlist artwork: \(error)")
+            return nil
+        }
+    }
+    
+    /// Clear artwork when stopping
+    func clearArtwork() {
+        currentArtworkURL = nil
+        isPlaying = false
     }
     
     // MARK: - Playback
@@ -194,8 +257,13 @@ final class AppleMusicManager {
                 player.queue = [song]
                 try await player.play()
                 print("🎵 Playing song: \(song.title)")
+                
+                // Update artwork
+                let artworkURL = song.artwork?.url(width: artworkSize, height: artworkSize)
                 await MainActor.run {
                     errorMessage = nil
+                    isPlaying = true
+                    currentArtworkURL = artworkURL
                 }
             } else {
                 await MainActor.run {
@@ -229,15 +297,22 @@ final class AppleMusicManager {
                     player.queue = ApplicationMusicPlayer.Queue(for: tracks)
                     try await player.play()
                     print("🎵 Playing library playlist: \(playlist.name) with \(tracks.count) tracks")
+                    
+                    // Get artwork from first track or playlist
+                    let artworkURL: URL? = playlist.artwork?.url(width: artworkSize, height: artworkSize)
+                        ?? tracks.first?.artwork?.url(width: artworkSize, height: artworkSize)
+                    
                     await MainActor.run {
                         errorMessage = nil
+                        isPlaying = true
+                        currentArtworkURL = artworkURL
                     }
                     return
                 }
             }
             
             // If not in cache, try fetching from library again
-            var libraryRequest = MusicLibraryRequest<Playlist>()
+            let libraryRequest = MusicLibraryRequest<Playlist>()
             let libraryResponse = try await libraryRequest.response()
             
             if let playlist = libraryResponse.items.first(where: { $0.id.rawValue == id }) {
@@ -248,8 +323,15 @@ final class AppleMusicManager {
                     player.queue = ApplicationMusicPlayer.Queue(for: tracks)
                     try await player.play()
                     print("🎵 Playing library playlist: \(playlist.name) with \(tracks.count) tracks")
+                    
+                    // Get artwork from first track or playlist
+                    let artworkURL: URL? = playlist.artwork?.url(width: artworkSize, height: artworkSize)
+                        ?? tracks.first?.artwork?.url(width: artworkSize, height: artworkSize)
+                    
                     await MainActor.run {
                         errorMessage = nil
+                        isPlaying = true
+                        currentArtworkURL = artworkURL
                     }
                     return
                 }
@@ -271,6 +353,7 @@ final class AppleMusicManager {
     func pause() {
         ApplicationMusicPlayer.shared.pause()
         print("⏸️ Music paused")
+        isPlaying = false
     }
     
     func play() {
@@ -278,6 +361,9 @@ final class AppleMusicManager {
             do {
                 try await ApplicationMusicPlayer.shared.play()
                 print("▶️ Music resumed")
+                await MainActor.run {
+                    isPlaying = true
+                }
             } catch {
                 print("❌ Error resuming: \(error)")
             }

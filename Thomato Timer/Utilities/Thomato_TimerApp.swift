@@ -1,6 +1,6 @@
 //
 //  Thomato_TimerApp.swift
-//  Thomodoro
+//  Thomato Timer
 //
 //  Created by Thomas Xie on 2025/11/24.
 //
@@ -18,7 +18,15 @@ struct Thomato_TimerApp: App {
     @State private var spotifyManager = SpotifyManager()
     
     init() {
-        // Set delegate before requesting authorization (ios notifications don't work otherwise)
+        // Configure URLCache for memory-only (no disk storage for compliance)
+        // This allows fast re-displays during the session without storing artwork to disk
+        URLCache.shared = URLCache(
+            memoryCapacity: 50_000_000,  // 50MB memory cache
+            diskCapacity: 0,              // No disk storage
+            diskPath: nil
+        )
+        
+        // Set notification delegate FIRST, then request authorization
         NotificationManager.shared.setupDelegate()
         NotificationManager.shared.requestAuthorization()
     }
@@ -70,7 +78,7 @@ struct Thomato_TimerApp: App {
     }
 }
 
-// Notification Names
+// MARK: - Notification Names
 
 extension Notification.Name {
     static let toggleTimer = Notification.Name("toggleTimer")

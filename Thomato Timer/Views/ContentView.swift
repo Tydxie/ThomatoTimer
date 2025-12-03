@@ -33,6 +33,27 @@ struct ContentView: View {
         #endif
     }
     
+    // MARK: - Artwork URL Helper
+    
+    private var currentArtworkURL: URL? {
+        switch selectedService {
+        case .appleMusic:
+            return appleMusicManager.currentArtworkURL
+        case .spotify, .none:
+            return nil
+        }
+    }
+    
+    private var isMusicPlaying: Bool {
+        switch selectedService {
+        
+        case .appleMusic:
+            return appleMusicManager.isPlaying
+        case .spotify, .none:
+            return false
+        }
+    }
+    
     // MARK: - iOS Layout
     
     #if os(iOS)
@@ -55,12 +76,9 @@ struct ContentView: View {
                         
                         Spacer()
                         
-                        // Image
-                        Image(currentImage)
-                            .resizable()
-                            .scaledToFill()
+                        // Image - show album artwork if playing, otherwise phase image
+                        artworkImageView
                             .frame(width: 250, height: 250)
-                            .clipped()
                             .cornerRadius(12)
                             .shadow(radius: 3)
                         
@@ -279,35 +297,29 @@ struct ContentView: View {
                     .frame(width: 200)
                     .padding(.top, 30)
                 
-                // Images - adjust each position individually
+                // Images - show album artwork if playing, otherwise phase images
                 ZStack {
-                    // Warmup image
-                    Image("warmup")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 350, height: 250)
-                        .offset(x: 0, y: -10) // Adjust warmup position here
-                        .opacity(viewModel.timerState.currentPhase == .warmup ? 1 : 0)
-                    
-                    // Work/Tomato image
-                    Image("tomato")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 290, height: 370)
-                        .offset(x: 0, y: -15) // Adjust tomato position here
-                        .opacity(viewModel.timerState.currentPhase == .work ? 1 : 0)
-                    
-                    // Break image
-                    Image("break")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 350, height: 250)
-                        .offset(x: 0, y: -60) // Adjust break position here
-                        .opacity(viewModel.timerState.currentPhase == .shortBreak || viewModel.timerState.currentPhase == .longBreak ? 1 : 0)
+                    if let artworkURL = currentArtworkURL, isMusicPlaying {
+                        // Album artwork from music service
+                        AsyncImage(url: artworkURL) { image in
+                            image
+                                .resizable()
+                                .scaledToFit()
+                        } placeholder: {
+                            // Show phase image while loading
+                            phaseImageMac
+                        }
+                        .frame(width: 220, height: 220)
+                        .cornerRadius(12)
+                        .offset(y: 50)
+                    } else {
+                        // Default phase images
+                        phaseImageMac
+                    }
                 }
                 .shadow(radius: 3)
                 
-            Spacer()
+                Spacer()
             }
             .frame(width: 300)
             
@@ -387,7 +399,65 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+    
+    // MARK: - macOS Phase Images
+    
+    @ViewBuilder
+    private var phaseImageMac: some View {
+        ZStack {
+            // Warmup image
+            Image("warmup")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 350, height: 250)
+                .offset(x: 0, y: -10)
+                .opacity(viewModel.timerState.currentPhase == .warmup ? 1 : 0)
+            
+            // Work/Tomato image
+            Image("tomato")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 290, height: 370)
+                .offset(x: 0, y: -15)
+                .opacity(viewModel.timerState.currentPhase == .work ? 1 : 0)
+            
+            // Break image
+            Image("break")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 250, height: 250)
+                .offset(x: 0, y: -60)
+                .opacity(viewModel.timerState.currentPhase == .shortBreak || viewModel.timerState.currentPhase == .longBreak ? 1 : 0)
+        }
+    }
     #endif
+    
+    // MARK: - Shared Artwork View (iOS)
+    
+    @ViewBuilder
+    private var artworkImageView: some View {
+        if let artworkURL = currentArtworkURL, isMusicPlaying {
+            // Album artwork from music service
+            AsyncImage(url: artworkURL) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+            } placeholder: {
+                // Show phase image while loading
+                Image(currentImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+            }
+        } else {
+            // Default phase image
+            Image(currentImage)
+                .resizable()
+                .scaledToFill()
+                .clipped()
+        }
+    }
     
     // MARK: - Shared
     

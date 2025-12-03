@@ -2,24 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string></string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.mountiepython.Thomato-Timer</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>thomato-timer</string>
-			</array>
-		</dict>
-	</array>
-	<key>UILaunchScreen</key>
-	<false/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string></string>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.mountiepython.Thomato-Timer</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>thomato-timer</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Required for MusicKit authorization -->
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Thomodoro uses Apple Music to play your warmup, focus, and break playlists.</string>
+
+    <!-- Required for macOS if you access the local Music library -->
+    <key>NSMusicUsageDescription</key>
+    <string>Thomodoro may access your local Music library to match playlists.</string>
 </dict>
 </plist>
