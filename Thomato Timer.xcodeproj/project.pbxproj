@@ -21,6 +21,7 @@
 		6871CBB62EDA821500C374C2 /* ProjectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBB52EDA821500C374C2 /* ProjectManager.swift */; };
 		6871CBB82EDA82F900C374C2 /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBB72EDA82F900C374C2 /* ProjectListView.swift */; };
 		6871CBBA2EDA839800C374C2 /* ProjectSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBB92EDA839800C374C2 /* ProjectSwitcherView.swift */; };
+		68F2D2C62EE0AFB2000AA958 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */; platformFilter = ios; };
 		68F984AB2ED9F4AA00C1757B /* Thomato_TimerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */; };
 		68F984AD2ED9F4AA00C1757B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984AC2ED9F4AA00C1757B /* ContentView.swift */; };
 		68F984AF2ED9F4AC00C1757B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 68F984AE2ED9F4AC00C1757B /* Assets.xcassets */; };
@@ -49,7 +50,8 @@
 		6871CBB52EDA821500C374C2 /* ProjectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectManager.swift; sourceTree = "<group>"; };
 		6871CBB72EDA82F900C374C2 /* ProjectListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectListView.swift; sourceTree = "<group>"; };
 		6871CBB92EDA839800C374C2 /* ProjectSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSwitcherView.swift; sourceTree = "<group>"; };
-		68F984A72ED9F4AA00C1757B /* Thomato Timer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Thomato Timer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		68F984A72ED9F4AA00C1757B /* Thomodoro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Thomodoro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thomato_TimerApp.swift; sourceTree = "<group>"; };
 		68F984AC2ED9F4AA00C1757B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		68F984AE2ED9F4AC00C1757B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -85,7 +87,7 @@
 		68F984A82ED9F4AA00C1757B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				68F984A72ED9F4AA00C1757B /* Thomato Timer.app */,
+				68F984A72ED9F4AA00C1757B /* Thomodoro.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -139,6 +141,7 @@
 				6871CBB72EDA82F900C374C2 /* ProjectListView.swift */,
 				6871CBB92EDA839800C374C2 /* ProjectSwitcherView.swift */,
 				680EED972EDE37FC00D543E6 /* AppleMusicSearchView.swift */,
+				68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -180,7 +183,7 @@
 			);
 			name = "Thomato Timer";
 			productName = "Thomato Timer";
-			productReference = 68F984A72ED9F4AA00C1757B /* Thomato Timer.app */;
+			productReference = 68F984A72ED9F4AA00C1757B /* Thomodoro.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -221,6 +224,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				68F2D2C62EE0AFB2000AA958 /* LaunchScreen.storyboard in Resources */,
 				68F984B32ED9F4AC00C1757B /* Preview Assets.xcassets in Resources */,
 				68F984AF2ED9F4AC00C1757B /* Assets.xcassets in Resources */,
 			);
@@ -389,23 +393,25 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Thomato-Timer-Info.plist";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Thomodoro uses Apple Music to play focus and break playlists.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = NO;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = NO;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mountiepython.Thomato-Timer";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Thomodoro;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -428,23 +434,25 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Thomato-Timer-Info.plist";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Thomodoro uses Apple Music to play focus and break playlists.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = NO;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = NO;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mountiepython.Thomato-Timer";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Thomodoro;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_EMIT_LOC_STRINGS = YES;

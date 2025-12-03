@@ -49,13 +49,28 @@ final class AppleMusicManager {
     var workPlaylistName: String?
     var breakPlaylistName: String?
     
-    // User's playlists from library
+    // User's playlists from library (store full playlist for playback)
     var playlists: [AppleMusicPlaylistItem] = []
+    private var libraryPlaylists: [Playlist] = []
     
     // Search results for songs
     var searchResults: [AppleMusicSongItem] = []
     
     var errorMessage: String?
+    
+    // MARK: - Warmup (call this to pre-initialize MusicKit)
+    
+    func warmup() {
+        Task {
+            // Pre-warm MusicKit by doing a minimal request
+            if isAuthorized {
+                var request = MusicCatalogSearchRequest(term: "a", types: [Song.self])
+                request.limit = 1
+                _ = try? await request.response()
+                print("🎵 MusicKit warmed up")
+            }
+        }
+    }
     
     // MARK: - Authorization
     
@@ -82,6 +97,7 @@ final class AppleMusicManager {
         await checkAuthorization()
         if isAuthorized {
             await fetchUserPlaylists()
+            warmup() // Pre-warm for search
         }
     }
     
@@ -96,7 +112,10 @@ final class AppleMusicManager {
             request.sort(by: \.name, ascending: true)
             let response = try await request.response()
             
-            let items = response.items.map { playlist in
+            // Store full playlists for playback
+            let fetchedPlaylists = Array(response.items)
+            
+            let items = fetchedPlaylists.map { playlist in
                 AppleMusicPlaylistItem(
                     id: playlist.id.rawValue,
                     name: playlist.name
@@ -104,9 +123,13 @@ final class AppleMusicManager {
             }
             
             await MainActor.run {
+                self.libraryPlaylists = fetchedPlaylists
                 self.playlists = items
                 print("🎵 Loaded \(items.count) Apple Music playlists")
             }
+            
+            // Pre-warm for search
+            warmup()
         } catch {
             print("❌ Error fetching playlists: \(error)")
             await MainActor.run {
@@ -118,7 +141,7 @@ final class AppleMusicManager {
     // MARK: - Search Songs
     
     func searchSongs(query: String) async {
-        guard isAuthorized, !query.isEmpty else {
+        guard isAuthorized, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             await MainActor.run {
                 self.searchResults = []
             }
@@ -141,11 +164,13 @@ final class AppleMusicManager {
             
             await MainActor.run {
                 self.searchResults = items
+                print("🎵 Found \(items.count) songs for query: \(query)")
             }
         } catch {
             print("❌ Search error: \(error)")
             await MainActor.run {
                 self.searchResults = []
+                self.errorMessage = "Search failed: \(error.localizedDescription)"
             }
         }
     }
@@ -194,39 +219,47 @@ final class AppleMusicManager {
         }
         
         do {
-            // Try library playlist first
+            // First, check if we have this playlist in our cached library playlists
+            if let playlist = libraryPlaylists.first(where: { $0.id.rawValue == id }) {
+                // Load the playlist with its tracks
+                let detailedPlaylist = try await playlist.with([.tracks])
+                
+                if let tracks = detailedPlaylist.tracks {
+                    let player = ApplicationMusicPlayer.shared
+                    player.queue = ApplicationMusicPlayer.Queue(for: tracks)
+                    try await player.play()
+                    print("🎵 Playing library playlist: \(playlist.name) with \(tracks.count) tracks")
+                    await MainActor.run {
+                        errorMessage = nil
+                    }
+                    return
+                }
+            }
+            
+            // If not in cache, try fetching from library again
             var libraryRequest = MusicLibraryRequest<Playlist>()
-            libraryRequest.filter(matching: \.id, equalTo: MusicItemID(id))
             let libraryResponse = try await libraryRequest.response()
             
-            if let playlist = libraryResponse.items.first {
-                let player = ApplicationMusicPlayer.shared
-                player.queue = [playlist]
-                try await player.play()
-                print("🎵 Playing playlist: \(playlist.name)")
-                await MainActor.run {
-                    errorMessage = nil
-                }
-                return
-            }
-            
-            // Fallback to catalog playlist
-            let catalogRequest = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(id))
-            let catalogResponse = try await catalogRequest.response()
-            
-            if let playlist = catalogResponse.items.first {
-                let player = ApplicationMusicPlayer.shared
-                player.queue = [playlist]
-                try await player.play()
-                print("🎵 Playing playlist: \(playlist.name)")
-                await MainActor.run {
-                    errorMessage = nil
-                }
-            } else {
-                await MainActor.run {
-                    errorMessage = "Playlist not found"
+            if let playlist = libraryResponse.items.first(where: { $0.id.rawValue == id }) {
+                let detailedPlaylist = try await playlist.with([.tracks])
+                
+                if let tracks = detailedPlaylist.tracks {
+                    let player = ApplicationMusicPlayer.shared
+                    player.queue = ApplicationMusicPlayer.Queue(for: tracks)
+                    try await player.play()
+                    print("🎵 Playing library playlist: \(playlist.name) with \(tracks.count) tracks")
+                    await MainActor.run {
+                        errorMessage = nil
+                    }
+                    return
                 }
             }
+            
+            await MainActor.run {
+                errorMessage = "Playlist not found in library"
+            }
+            print("❌ Playlist not found: \(id)")
+            
         } catch {
             await MainActor.run {
                 errorMessage = "Failed to play playlist: \(error.localizedDescription)"

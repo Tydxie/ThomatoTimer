@@ -11,6 +11,7 @@ struct TrackSearchView: View {
     @Bindable var spotifyManager: SpotifyManager
     @Environment(\.dismiss) var dismiss
     @State private var searchQuery = ""
+    @State private var searchTask: Task<Void, Never>?
     
     var body: some View {
         #if os(iOS)
@@ -18,6 +19,20 @@ struct TrackSearchView: View {
         #else
         macOSLayout
         #endif
+    }
+    
+    private func performSearch(_ query: String) {
+        // Cancel previous search
+        searchTask?.cancel()
+        
+        // Start new debounced search
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
+            
+            guard !Task.isCancelled else { return }
+            
+            await spotifyManager.searchTracks(query: query)
+        }
     }
     
     // MARK: - iOS Layout
@@ -31,12 +46,7 @@ struct TrackSearchView: View {
                     .textFieldStyle(.roundedBorder)
                     .padding()
                     .onChange(of: searchQuery) { oldValue, newValue in
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            if newValue == searchQuery {
-                                await spotifyManager.searchTracks(query: newValue)
-                            }
-                        }
+                        performSearch(newValue)
                     }
                 
                 // Results
@@ -69,12 +79,7 @@ struct TrackSearchView: View {
             TextField("Search for a song...", text: $searchQuery)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: searchQuery) { oldValue, newValue in
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        if newValue == searchQuery {
-                            await spotifyManager.searchTracks(query: newValue)
-                        }
-                    }
+                    performSearch(newValue)
                 }
                 .padding(.horizontal)
             

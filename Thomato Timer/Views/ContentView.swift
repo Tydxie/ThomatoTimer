@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = TimerViewModel()
     @State private var showingSettings = false
+    @State private var showingProjectList = false
     @State private var selectedService: MusicService = .none
     @State private var appleMusicManager = AppleMusicManager()
     @State private var showingFirstTimePrompt = false
@@ -139,7 +140,7 @@ struct ContentView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationTitle("Thomato Timer")
+            .navigationTitle("Thomodoro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -156,8 +157,13 @@ struct ContentView: View {
                     selectedService: $selectedService
                 )
             }
+            .sheet(isPresented: $showingProjectList) {
+                ProjectListView()
+            }
             .alert("Start Tracking Your Progress", isPresented: $showingFirstTimePrompt) {
-                Button("Create Project") { }
+                Button("Create Project") {
+                    showingProjectList = true
+                }
                 Button("Skip", role: .cancel) { }
             } message: {
                 Text("Create projects and track your progress through milestones: 10h, 30h, 50h, 100h, 500h, 1000h, 2000h. Every session counts!")
@@ -184,13 +190,13 @@ struct ContentView: View {
     #if os(macOS)
     private var macOSLayout: some View {
         ZStack {
-            Color.thWhite
+            Color(nsColor: .textBackgroundColor)
                 .ignoresSafeArea()
             
             timerLayoutMac
-                .padding(40)
+                .padding(1)
         }
-        .frame(width: 700, height: 500)
+        .frame(width: 700, height: 450)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 12) {
@@ -207,7 +213,7 @@ struct ContentView: View {
                     
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gearshape")
-                            .foregroundColor(.thBlack)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .frame(width: 400, alignment: .trailing)
@@ -221,8 +227,13 @@ struct ContentView: View {
                 selectedService: $selectedService
             )
         }
+        .sheet(isPresented: $showingProjectList) {
+            ProjectListView()
+        }
         .alert("Start Tracking Your Progress", isPresented: $showingFirstTimePrompt) {
-            Button("Create Project") { }
+            Button("Create Project") {
+                showingProjectList = true
+            }
             Button("Skip", role: .cancel) { }
         } message: {
             Text("Create projects and track your progress through milestones: 10h, 30h, 50h, 100h, 500h, 1000h, 2000h. Every session counts!")
@@ -263,31 +274,54 @@ struct ContentView: View {
             Spacer()
             
             // LEFT SIDE - PROJECT SWITCHER + IMAGE
-            VStack(spacing: 12) {
+            VStack(spacing: 1) {
                 ProjectSwitcherView(viewModel: viewModel)
                     .frame(width: 200)
+                    .padding(.top, 30)
                 
-                Image(currentImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 350, height: 350)
-                    .shadow(radius: 3)
-            }
-            .frame(width: 350)
-            
+                // Images - adjust each position individually
+                ZStack {
+                    // Warmup image
+                    Image("warmup")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 350, height: 250)
+                        .offset(x: 0, y: -10) // Adjust warmup position here
+                        .opacity(viewModel.timerState.currentPhase == .warmup ? 1 : 0)
+                    
+                    // Work/Tomato image
+                    Image("tomato")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 290, height: 370)
+                        .offset(x: 0, y: -15) // Adjust tomato position here
+                        .opacity(viewModel.timerState.currentPhase == .work ? 1 : 0)
+                    
+                    // Break image
+                    Image("break")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 350, height: 250)
+                        .offset(x: 0, y: -60) // Adjust break position here
+                        .opacity(viewModel.timerState.currentPhase == .shortBreak || viewModel.timerState.currentPhase == .longBreak ? 1 : 0)
+                }
+                .shadow(radius: 3)
+                
             Spacer()
-                .frame(width: 15)
+            }
+            .frame(width: 300)
+            
             
             // RIGHT TIMER PANEL
             VStack(spacing: 20) {
                 Text(viewModel.phaseTitle)
                     .font(.title)
                     .bold()
-                    .foregroundColor(.thBlack)
+                    .foregroundColor(.primary)
                 
                 Text(viewModel.displayTime)
                     .font(.system(size: 64, weight: .bold, design: .monospaced))
-                    .foregroundColor(.thBlack)
+                    .foregroundColor(.primary)
                 
                 VStack(spacing: 5) {
                     Slider(
@@ -309,11 +343,11 @@ struct ContentView: View {
                     HStack {
                         Text("0:00")
                             .font(.caption)
-                            .foregroundColor(.thBlack)
+                            .foregroundColor(.secondary)
                         Spacer()
                         Text(viewModel.displayTime)
                             .font(.caption)
-                            .foregroundColor(.thBlack)
+                            .foregroundColor(.secondary)
                     }
                     .frame(width: 300)
                 }
@@ -342,7 +376,7 @@ struct ContentView: View {
                 
                 Text(viewModel.timerState.checkmarks)
                     .font(.title3)
-                    .foregroundColor(.thBlack)
+                    .foregroundColor(.primary)
             }
             .frame(width: 320)
             

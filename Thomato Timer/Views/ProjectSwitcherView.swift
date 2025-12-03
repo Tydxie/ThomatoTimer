@@ -55,13 +55,15 @@ struct ProjectSwitcherView: View {
                 if let currentProject = projectManager.currentProject {
                     Text(currentProject.displayName)
                         .font(.headline)
+                        .foregroundColor(.primary)
                 } else {
                     Text("Freestyle")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
                 }
                 Image(systemName: "chevron.down")
                     .font(.caption)
+                    .foregroundColor(.primary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

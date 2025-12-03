@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import MusicKit
 
 struct AppleMusicSearchView: View {
-    @Bindable var appleMusicManager: AppleMusicManager
+    var appleMusicManager: AppleMusicManager
     @Environment(\.dismiss) var dismiss
     @State private var searchQuery = ""
+    @State private var searchResults: [AppleMusicSongItem] = []
+    @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>?
     
     var body: some View {
         #if os(iOS)
@@ -20,34 +24,106 @@ struct AppleMusicSearchView: View {
         #endif
     }
     
+    private func performSearch(_ query: String) {
+        searchTask?.cancel()
+        
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            searchResults = []
+            return
+        }
+        
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run { isSearching = true }
+            
+            do {
+                var request = MusicCatalogSearchRequest(term: trimmed, types: [Song.self])
+                request.limit = 20
+                let response = try await request.response()
+                
+                guard !Task.isCancelled else { return }
+                
+                let items = response.songs.map { song in
+                    AppleMusicSongItem(
+                        id: song.id.rawValue,
+                        name: song.title,
+                        artistName: song.artistName,
+                        albumName: song.albumTitle ?? ""
+                    )
+                }
+                
+                await MainActor.run {
+                    searchResults = items
+                    isSearching = false
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    searchResults = []
+                    isSearching = false
+                }
+            }
+        }
+    }
+    
+    private func selectSong(_ song: AppleMusicSongItem) {
+        appleMusicManager.selectedWarmupSongId = song.id
+        appleMusicManager.warmupSongName = song.displayName
+        dismiss()
+    }
+    
     // MARK: - iOS Layout
     
     #if os(iOS)
     private var iOSLayout: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Search Bar
-                TextField("Search for a song...", text: $searchQuery)
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
-                    .onChange(of: searchQuery) { oldValue, newValue in
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            if newValue == searchQuery {
-                                await appleMusicManager.searchSongs(query: newValue)
+            List {
+                Section {
+                    TextField("Search for a song...", text: $searchQuery)
+                        .autocorrectionDisabled()
+                        .onChange(of: searchQuery) { _, newValue in
+                            performSearch(newValue)
+                        }
+                }
+                
+                if isSearching {
+                    Section {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                    }
+                } else if !searchResults.isEmpty {
+                    Section("Results") {
+                        ForEach(searchResults) { song in
+                            Button(action: { selectSong(song) }) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(song.name)
+                                        .foregroundColor(.primary)
+                                    Text(song.artistName)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                     }
-                
-                // Results
-                searchResultsView
+                } else if !searchQuery.isEmpty {
+                    Section {
+                        Text("No results found")
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             .navigationTitle("Select Warmup Song")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        appleMusicManager.searchResults = []
+                        searchTask?.cancel()
                         dismiss()
                     }
                 }
@@ -65,25 +141,17 @@ struct AppleMusicSearchView: View {
                 .font(.title2)
                 .bold()
             
-            // Search Bar
             TextField("Search for a song...", text: $searchQuery)
                 .textFieldStyle(.roundedBorder)
-                .onChange(of: searchQuery) { oldValue, newValue in
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        if newValue == searchQuery {
-                            await appleMusicManager.searchSongs(query: newValue)
-                        }
-                    }
+                .onChange(of: searchQuery) { _, newValue in
+                    performSearch(newValue)
                 }
                 .padding(.horizontal)
             
-            // Results
             searchResultsView
             
-            // Cancel Button
             Button("Cancel") {
-                appleMusicManager.searchResults = []
+                searchTask?.cancel()
                 dismiss()
             }
             .buttonStyle(.bordered)
@@ -91,22 +159,20 @@ struct AppleMusicSearchView: View {
         }
         .frame(width: 480, height: 400)
     }
-    #endif
-    
-    // MARK: - Shared Results View
     
     @ViewBuilder
     private var searchResultsView: some View {
-        if !appleMusicManager.searchResults.isEmpty {
+        if isSearching {
+            VStack {
+                Spacer()
+                ProgressView("Searching...")
+                Spacer()
+            }
+        } else if !searchResults.isEmpty {
             ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(appleMusicManager.searchResults) { song in
-                        Button(action: {
-                            appleMusicManager.selectedWarmupSongId = song.id
-                            appleMusicManager.warmupSongName = song.displayName
-                            appleMusicManager.searchResults = []
-                            dismiss()
-                        }) {
+                LazyVStack(spacing: 8) {
+                    ForEach(searchResults) { song in
+                        Button(action: { selectSong(song) }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(song.name)
@@ -148,6 +214,7 @@ struct AppleMusicSearchView: View {
             }
         }
     }
+    #endif
 }
 
 #Preview {
