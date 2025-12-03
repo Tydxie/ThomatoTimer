@@ -15,8 +15,12 @@ class NotificationManager: NSObject, ObservableObject {
     
     private override init() {
         super.init()
-        UNUserNotificationCenter.current().delegate = self
         checkAuthorization()
+    }
+    
+    func setupDelegate() {
+        UNUserNotificationCenter.current().delegate = self
+        print("🔔 Notification delegate set")
     }
     
     func requestAuthorization() {
@@ -68,6 +72,7 @@ class NotificationManager: NSObject, ObservableObject {
         }
         
         content.sound = .default
+        content.interruptionLevel = .timeSensitive
         
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
@@ -94,6 +99,19 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         print("🔔 Notification appearing now!")
+        #if os(iOS)
+        completionHandler([.banner, .sound, .list])
+        #else
         completionHandler([.banner, .sound])
+        #endif
+    }
+    
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        print("🔔 User tapped notification")
+        completionHandler()
     }
 }

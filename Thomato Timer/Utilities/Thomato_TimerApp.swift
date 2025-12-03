@@ -1,11 +1,12 @@
 //
 //  Thomato_TimerApp.swift
-//  Thomato Timer
+//  Thomodoro
 //
 //  Created by Thomas Xie on 2025/11/24.
 //
 
 import SwiftUI
+import UserNotifications
 
 @main
 @MainActor
@@ -17,13 +18,14 @@ struct Thomato_TimerApp: App {
     @State private var spotifyManager = SpotifyManager()
     
     init() {
-        // Request notification permissions on launch
+        // Set delegate before requesting authorization (ios notifications don't work otherwise)
+        NotificationManager.shared.setupDelegate()
         NotificationManager.shared.requestAuthorization()
     }
     
     var body: some Scene {
         #if os(macOS)
-        Window("Thomato Timer", id: "main") {
+        Window("Thomodoro", id: "main") {
             ContentView(spotifyManager: spotifyManager)
                 .onOpenURL { url in
                     print("🎵 App received URL: \(url)")
@@ -68,7 +70,7 @@ struct Thomato_TimerApp: App {
     }
 }
 
-// MARK: - Notification Names
+// Notification Names
 
 extension Notification.Name {
     static let toggleTimer = Notification.Name("toggleTimer")

@@ -1,6 +1,6 @@
 //
 //  SpotifyConfig.swift
-//  Thomato Timer
+//  Thomodoro
 //
 //  Created by Thomas Xie on 2025/11/25.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 struct SpotifyConfig {
-    // Load from SpotifySecrets.swift
+    
     static let clientID = SpotifySecrets.clientID
     static let redirectURI = "thomato-timer://callback"
     
@@ -25,6 +25,6 @@ struct SpotifyConfig {
     ]
     
     static var scopeString: String {
-        scopes.joined(separator: "%20")  // ← Changed this
+        scopes.joined(separator: "%20")
     }
 }

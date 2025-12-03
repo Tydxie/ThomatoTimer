@@ -1,6 +1,6 @@
 //
 //  SpotifyManager.swift
-//  Thomato Timer
+//  Thomodoro
 //
 //  Created by Thomas Xie on 2025/11/25.
 //
@@ -266,7 +266,7 @@ final class SpotifyManager {
     // MARK: - Testing
     func testConfiguration() -> String {
         """
-        ✅ Spotify Configuration (Nov 2025)
+        ✅ Spotify Configuration (Works as of 11/25/2025)
         
         Client ID: \(SpotifyConfig.clientID.prefix(15))...
         Redirect URI: \(SpotifyConfig.redirectURI)
@@ -612,7 +612,7 @@ struct SpotifyDevice: Codable, Identifiable {
 // MARK: - Data Extension for Base64URL Encoding
 
 extension Data {
-    /// Base64URL encoding (RFC 4648) - used by PKCE
+    /// Base64URL encoding (RFC 4648) - compatible with PKCE
     func base64URLEncodedString() -> String {
         return self.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
