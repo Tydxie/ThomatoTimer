@@ -39,17 +39,20 @@ struct ContentView: View {
         switch selectedService {
         case .appleMusic:
             return appleMusicManager.currentArtworkURL
-        case .spotify, .none:
+        case .spotify:
+            return spotifyManager.currentArtworkURL
+        case .none:
             return nil
         }
     }
     
     private var isMusicPlaying: Bool {
         switch selectedService {
-        
         case .appleMusic:
             return appleMusicManager.isPlaying
-        case .spotify, .none:
+        case .spotify:
+            return spotifyManager.isPlaying
+        case .none:
             return false
         }
     }
@@ -72,8 +75,13 @@ struct ContentView: View {
                         // Image - show album artwork if playing, otherwise phase image
                         artworkImageView
                             .frame(width: 250, height: 250)
-                            .cornerRadius(12)
+                            .cornerRadius(8)  // Spotify guideline: 8px for large devices
                             .shadow(radius: 3)
+                        
+                        // Spotify attribution (required by design guidelines)
+                        if selectedService == .spotify && isMusicPlaying {
+                            spotifyAttribution
+                        }
                         
                         Spacer()
                     }
@@ -294,17 +302,24 @@ struct ContentView: View {
                 ZStack {
                     if let artworkURL = currentArtworkURL, isMusicPlaying {
                         // Album artwork from music service
-                        AsyncImage(url: artworkURL) { image in
-                            image
-                                .resizable()
-                                .scaledToFit()
-                        } placeholder: {
-                            // Show phase image while loading
-                            phaseImageMac
+                        VStack(spacing: 8) {
+                            AsyncImage(url: artworkURL) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                            } placeholder: {
+                                // Show phase image while loading
+                                phaseImageMac
+                            }
+                            .frame(width: 220, height: 220)
+                            .cornerRadius(8)  // Spotify guideline: 8px for large devices
+                            
+                            // Spotify attribution (required by design guidelines)
+                            if selectedService == .spotify {
+                                spotifyAttribution
+                            }
                         }
-                        .frame(width: 220, height: 220)
-                        .cornerRadius(12)
-                        .offset(y: 50)
+                        .offset(y: 30)
                     } else {
                         // Default phase images
                         phaseImageMac
@@ -424,6 +439,49 @@ struct ContentView: View {
         }
     }
     #endif
+    
+    // MARK: - Spotify Attribution (required by design guidelines)
+    
+    private var spotifyAttribution: some View {
+        Button {
+            openInSpotify()
+        } label: {
+            HStack(spacing: 6) {
+                // Spotify icon (green circle with sound waves)
+                Image(systemName: "music.note")
+                    .foregroundColor(.green)
+                    .font(.caption)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    if let trackName = spotifyManager.currentTrackName {
+                        Text(trackName)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .foregroundColor(.primary)
+                    }
+                    Text("Play on Spotify")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func openInSpotify() {
+        guard let urlString = spotifyManager.currentTrackSpotifyURL,
+              let url = URL(string: urlString) else { return }
+        
+        #if os(macOS)
+        NSWorkspace.shared.open(url)
+        #else
+        UIApplication.shared.open(url)
+        #endif
+    }
     
     // MARK: - Shared Artwork View (iOS)
     

@@ -31,6 +31,18 @@ final class SpotifyManager {
     var warmupTrackName: String?
     var searchResults: [SpotifyTrack] = []
     
+    // MARK: - Current Playback State (for artwork)
+    var currentArtworkURL: URL?
+    var isPlaying = false
+    var currentTrackName: String?
+    var currentArtistName: String?
+    var currentTrackSpotifyURL: String?  // For attribution link back to Spotify
+    private var currentTrackId: String?   // Track changes detection
+    
+    // MARK: - Playback Polling
+    private var pollingTimer: Timer?
+    private var isPollingEnabled = false
+    
     // MARK: - Authentication Flow
     
     /// Step 1: Generate PKCE values and open Spotify authorization page
@@ -387,6 +399,7 @@ final class SpotifyManager {
             return []
         }
     }
+    
     // MARK: - Token Management
 
     /// Check if token is expired or about to expire (within 5 minutes)
@@ -400,6 +413,110 @@ final class SpotifyManager {
         if isTokenExpired() {
             print("🔄 Token expired, refreshing...")
             await refreshAccessToken()
+        }
+    }
+    
+    // MARK: - Playback Polling (for real-time artwork updates)
+    
+    /// Start polling for current playback state - call when music starts
+    @MainActor
+    func startPlaybackPolling() {
+        guard !isPollingEnabled else { return }
+        isPollingEnabled = true
+        
+        // Fetch immediately
+        Task {
+            await fetchCurrentPlayback()
+        }
+        
+        // Then poll every 3 seconds to detect track changes
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task {
+                await self.fetchCurrentPlayback()
+            }
+        }
+        print("🎵 Started Spotify playback polling")
+    }
+    
+    /// Stop polling - call when music stops or service changes
+    @MainActor
+    func stopPlaybackPolling() {
+        isPollingEnabled = false
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+        currentArtworkURL = nil
+        currentTrackId = nil
+        currentTrackName = nil
+        currentArtistName = nil
+        currentTrackSpotifyURL = nil
+        isPlaying = false
+        print("🎵 Stopped Spotify playback polling")
+    }
+    
+    // MARK: - Current Playback State
+    
+    /// Fetch current playback to get artwork and detect track changes
+    func fetchCurrentPlayback() async {
+        await ensureValidToken()
+        guard let accessToken = self.accessToken else { return }
+        
+        var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/currently-playing")!)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else { return }
+            
+            // 204 = nothing playing
+            if httpResponse.statusCode == 204 {
+                await MainActor.run {
+                    self.isPlaying = false
+                    self.currentArtworkURL = nil
+                    self.currentTrackId = nil
+                    self.currentTrackName = nil
+                    self.currentArtistName = nil
+                    self.currentTrackSpotifyURL = nil
+                }
+                return
+            }
+            
+            guard httpResponse.statusCode == 200 else { return }
+            
+            let playbackResponse = try JSONDecoder().decode(CurrentPlaybackResponse.self, from: data)
+            
+            await MainActor.run {
+                self.isPlaying = playbackResponse.is_playing
+                
+                // Check if track changed
+                let newTrackId = playbackResponse.item?.id
+                if newTrackId != self.currentTrackId {
+                    self.currentTrackId = newTrackId
+                    self.currentTrackName = playbackResponse.item?.name
+                    self.currentArtistName = playbackResponse.item?.artists.first?.name
+                    
+                    // Get Spotify URL for attribution link
+                    if let externalUrls = playbackResponse.item?.external_urls {
+                        self.currentTrackSpotifyURL = externalUrls.spotify
+                    }
+                    
+                    // Get artwork - prefer 300x300 size per Spotify guidelines
+                    if let images = playbackResponse.item?.album?.images, !images.isEmpty {
+                        // Try to find 300x300, otherwise use first (largest)
+                        let artwork = images.first(where: { $0.width == 300 }) ?? images.first
+                        if let urlString = artwork?.url {
+                            self.currentArtworkURL = URL(string: urlString)
+                            print("🎨 Updated artwork for: \(self.currentTrackName ?? "Unknown")")
+                        }
+                    } else {
+                        self.currentArtworkURL = nil
+                    }
+                }
+            }
+            
+        } catch {
+            print("❌ Error fetching playback: \(error)")
         }
     }
     
@@ -444,6 +561,8 @@ final class SpotifyManager {
                     print("✅ Track playing successfully")
                     await MainActor.run {
                         errorMessage = nil
+                        isPlaying = true
+                        startPlaybackPolling()
                     }
                 } else {
                     print("❌ Play failed: \(httpResponse.statusCode)")
@@ -498,6 +617,8 @@ final class SpotifyManager {
                     print("✅ Playlist playing successfully")
                     await MainActor.run {
                         errorMessage = nil
+                        isPlaying = true
+                        startPlaybackPolling()
                     }
                 } else {
                     print("❌ Play failed: \(httpResponse.statusCode)")
@@ -522,6 +643,10 @@ final class SpotifyManager {
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
                     print("✅ Paused successfully")
+                    await MainActor.run {
+                        isPlaying = false
+                        stopPlaybackPolling()
+                    }
                 }
             }
         } catch {
@@ -607,6 +732,29 @@ struct SpotifyDevice: Codable, Identifiable {
     let name: String
     let type: String
     let is_active: Bool
+}
+
+// MARK: - Current Playback Models
+
+struct CurrentPlaybackResponse: Codable {
+    let is_playing: Bool
+    let item: CurrentTrack?
+}
+
+struct CurrentTrack: Codable {
+    let id: String
+    let name: String
+    let artists: [SpotifyArtist]
+    let album: SpotifyAlbum?
+    let external_urls: SpotifyExternalURLs?
+}
+
+struct SpotifyAlbum: Codable {
+    let images: [SpotifyImage]?
+}
+
+struct SpotifyExternalURLs: Codable {
+    let spotify: String?
 }
 
 // MARK: - Data Extension for Base64URL Encoding
