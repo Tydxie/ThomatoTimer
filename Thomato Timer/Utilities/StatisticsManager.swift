@@ -28,35 +28,88 @@ class StatisticsManager {
     private let sessionsKey = "completedSessions"
     private let firstUseKey = "firstUseDate"
     
+    // Use iCloud key-value store for sync across devices
+    private let iCloud = NSUbiquitousKeyValueStore.default
+    
     var sessions: [SessionRecord] = []
     var firstUseDate: Date?
     
     private init() {
+        // Listen for iCloud changes from other devices
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(iCloudDidUpdate),
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: iCloud
+        )
+        
+        // Trigger initial sync
+        iCloud.synchronize()
         loadData()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - iCloud Sync
+    
+    @objc private func iCloudDidUpdate(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int else {
+            return
+        }
+        
+        print("☁️ Statistics iCloud sync update received, reason: \(changeReason)")
+        
+        DispatchQueue.main.async {
+            self.loadData()
+        }
     }
     
     // MARK: - Data Persistence
     
     private func loadData() {
-        // Load sessions
-        if let data = UserDefaults.standard.data(forKey: sessionsKey),
+        // Load sessions from iCloud
+        if let data = iCloud.data(forKey: sessionsKey),
            let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data) {
             sessions = decoded
+            print("📊 Loaded \(sessions.count) sessions from iCloud")
+        } else {
+            // Fallback: try loading from UserDefaults (migration from old version)
+            if let data = UserDefaults.standard.data(forKey: sessionsKey),
+               let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data) {
+                sessions = decoded
+                print("📊 Migrated \(sessions.count) sessions from UserDefaults to iCloud")
+                saveData()
+                UserDefaults.standard.removeObject(forKey: sessionsKey)
+            }
         }
         
-        // Load first use date
-        if let date = UserDefaults.standard.object(forKey: firstUseKey) as? Date {
-            firstUseDate = date
+        // Load first use date from iCloud
+        if let timestamp = iCloud.object(forKey: firstUseKey) as? Double {
+            firstUseDate = Date(timeIntervalSince1970: timestamp)
         } else {
-            // First time using app
-            firstUseDate = Date()
-            UserDefaults.standard.set(firstUseDate, forKey: firstUseKey)
+            // Fallback: try loading from UserDefaults
+            if let date = UserDefaults.standard.object(forKey: firstUseKey) as? Date {
+                firstUseDate = date
+                iCloud.set(date.timeIntervalSince1970, forKey: firstUseKey)
+                iCloud.synchronize()
+                UserDefaults.standard.removeObject(forKey: firstUseKey)
+            } else {
+                // First time using app
+                firstUseDate = Date()
+                iCloud.set(firstUseDate!.timeIntervalSince1970, forKey: firstUseKey)
+                iCloud.synchronize()
+            }
         }
     }
     
     private func saveData() {
         if let encoded = try? JSONEncoder().encode(sessions) {
-            UserDefaults.standard.set(encoded, forKey: sessionsKey)
+            iCloud.set(encoded, forKey: sessionsKey)
+            iCloud.synchronize()
+            print("☁️ Saved \(sessions.count) sessions to iCloud")
         }
     }
     

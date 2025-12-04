@@ -15,6 +15,9 @@ class ProjectManager {
     private let projectsKey = "savedProjects"
     private let currentProjectKey = "currentProjectId"
     
+    // Use iCloud key-value store for sync across devices
+    private let iCloud = NSUbiquitousKeyValueStore.default
+    
     var projects: [Project] = []
     var currentProjectId: UUID?
     
@@ -24,45 +27,97 @@ class ProjectManager {
     }
     
     private init() {
+        // Listen for iCloud changes from other devices
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(iCloudDidUpdate),
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: iCloud
+        )
+        
+        // Trigger initial sync
+        iCloud.synchronize()
         loadData()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - iCloud Sync
+    
+    @objc private func iCloudDidUpdate(_ notification: Notification) {
+        // Handle changes from other devices
+        guard let userInfo = notification.userInfo,
+              let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int else {
+            return
+        }
+        
+        print("☁️ iCloud sync update received, reason: \(changeReason)")
+        
+        DispatchQueue.main.async {
+            self.loadData()
+        }
     }
     
     // MARK: - Data Persistence
     
     private func loadData() {
-        // Load projects
-        if let data = UserDefaults.standard.data(forKey: projectsKey),
+        // Load projects from iCloud
+        if let data = iCloud.data(forKey: projectsKey),
            let decoded = try? JSONDecoder().decode([Project].self, from: data) {
             projects = decoded
-            print("📁 Loaded \(projects.count) projects")
+            print("📁 Loaded \(projects.count) projects from iCloud")
         } else {
-            projects = []
-            print("📁 No existing projects found")
+            // Fallback: try loading from UserDefaults (migration from old version)
+            if let data = UserDefaults.standard.data(forKey: projectsKey),
+               let decoded = try? JSONDecoder().decode([Project].self, from: data) {
+                projects = decoded
+                print("📁 Migrated \(projects.count) projects from UserDefaults to iCloud")
+                // Save to iCloud and remove from UserDefaults
+                saveData()
+                UserDefaults.standard.removeObject(forKey: projectsKey)
+            } else {
+                projects = []
+                print("📁 No existing projects found")
+            }
         }
         
-        // Load current project selection
-        if let idString = UserDefaults.standard.string(forKey: currentProjectKey),
+        // Load current project selection from iCloud
+        if let idString = iCloud.string(forKey: currentProjectKey),
            let id = UUID(uuidString: idString) {
             currentProjectId = id
             print("📁 Current project: \(currentProject?.displayName ?? "nil")")
         } else {
-            currentProjectId = nil
-            print("📁 No project selected")
+            // Fallback: try loading from UserDefaults
+            if let idString = UserDefaults.standard.string(forKey: currentProjectKey),
+               let id = UUID(uuidString: idString) {
+                currentProjectId = id
+                saveData()
+                UserDefaults.standard.removeObject(forKey: currentProjectKey)
+            } else {
+                currentProjectId = nil
+                print("📁 No project selected")
+            }
         }
     }
     
     private func saveData() {
-        // Save projects
+        // Save projects to iCloud
         if let encoded = try? JSONEncoder().encode(projects) {
-            UserDefaults.standard.set(encoded, forKey: projectsKey)
+            iCloud.set(encoded, forKey: projectsKey)
         }
         
-        // Save current selection
+        // Save current selection to iCloud
         if let id = currentProjectId {
-            UserDefaults.standard.set(id.uuidString, forKey: currentProjectKey)
+            iCloud.set(id.uuidString, forKey: currentProjectKey)
         } else {
-            UserDefaults.standard.removeObject(forKey: currentProjectKey)
+            iCloud.removeObject(forKey: currentProjectKey)
         }
+        
+        // Trigger sync
+        iCloud.synchronize()
+        print("☁️ Saved to iCloud")
     }
     
     // MARK: - Project Management

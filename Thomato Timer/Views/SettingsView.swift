@@ -14,8 +14,6 @@ struct SettingsView: View {
     @Bindable var spotifyManager: SpotifyManager
     @Bindable var appleMusicManager: AppleMusicManager
     @Binding var selectedService: MusicService
-    @State private var showingTrackSearch = false
-    @State private var showingAppleMusicSearch = false
     @State private var showingStats = false
     
     var body: some View {
@@ -93,12 +91,6 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showingTrackSearch) {
-                TrackSearchView(spotifyManager: spotifyManager)
-            }
-            .sheet(isPresented: $showingAppleMusicSearch) {
-                AppleMusicSearchView(appleMusicManager: appleMusicManager)
-            }
             .sheet(isPresented: $showingStats) {
                 StatisticsView()
             }
@@ -131,27 +123,12 @@ struct SettingsView: View {
                     }
                 }
                 
-                Picker("Break Playlist", selection: $spotifyManager.selectedBreakPlaylistId) {
+                Picker("Warmup/Break Playlist", selection: $spotifyManager.selectedBreakPlaylistId) {
                     Text("None").tag(nil as String?)
                     ForEach(spotifyManager.playlists) { playlist in
                         Text(playlist.name).tag(playlist.id as String?)
                     }
                 }
-                
-                HStack {
-                    Text("Warmup Song")
-                    Spacer()
-                    if let trackName = spotifyManager.warmupTrackName {
-                        Text(trackName)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    } else {
-                        Text("None")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture { showingTrackSearch = true }
                 
             } else {
                 Button("Load Playlists") {
@@ -224,27 +201,12 @@ struct SettingsView: View {
                     }
                 }
                 
-                Picker("Break Playlist", selection: $appleMusicManager.selectedBreakPlaylistId) {
+                Picker("Warmup/Break Playlist", selection: $appleMusicManager.selectedBreakPlaylistId) {
                     Text("None").tag(nil as String?)
                     ForEach(appleMusicManager.playlists) { playlist in
                         Text(playlist.name).tag(playlist.id as String?)
                     }
                 }
-                
-                HStack {
-                    Text("Warmup Song")
-                    Spacer()
-                    if let songName = appleMusicManager.warmupSongName {
-                        Text(songName)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    } else {
-                        Text("None")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture { showingAppleMusicSearch = true }
                 
             } else {
                 Button("Load Playlists") {
@@ -355,12 +317,6 @@ struct SettingsView: View {
             .padding()
         }
         .frame(width: 480, height: 400)
-        .sheet(isPresented: $showingTrackSearch) {
-            TrackSearchView(spotifyManager: spotifyManager)
-        }
-        .sheet(isPresented: $showingAppleMusicSearch) {
-            AppleMusicSearchView(appleMusicManager: appleMusicManager)
-        }
         .sheet(isPresented: $showingStats) {
             StatisticsView()
         }
@@ -409,7 +365,7 @@ struct SettingsView: View {
                             }
                             
                             HStack {
-                                Text("Break Playlist:")
+                                Text("Warmup/Break Playlist:")
                                     .frame(width: 120, alignment: .leading)
                                 
                                 Picker("", selection: $spotifyManager.selectedBreakPlaylistId) {
@@ -419,20 +375,6 @@ struct SettingsView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
-                            }
-                            
-                            HStack {
-                                Text("Warmup Song:")
-                                    .frame(width: 120, alignment: .leading)
-                                
-                                Menu {
-                                    Button("Select Song...") {
-                                        showingTrackSearch = true
-                                    }
-                                } label: {
-                                    Text(spotifyManager.warmupTrackName ?? "None")
-                                        .lineLimit(1)
-                                }
                             }
                         }
                     } else {
@@ -531,7 +473,7 @@ struct SettingsView: View {
                             }
                             
                             HStack {
-                                Text("Break Playlist:")
+                                Text("Warmup/Break Playlist:")
                                     .frame(width: 120, alignment: .leading)
                                 
                                 Picker("", selection: $appleMusicManager.selectedBreakPlaylistId) {
@@ -541,20 +483,6 @@ struct SettingsView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
-                            }
-                            
-                            HStack {
-                                Text("Warmup Song:")
-                                    .frame(width: 120, alignment: .leading)
-                                
-                                Menu {
-                                    Button("Select Song...") {
-                                        showingAppleMusicSearch = true
-                                    }
-                                } label: {
-                                    Text(appleMusicManager.warmupSongName ?? "None")
-                                        .lineLimit(1)
-                                }
                             }
                         }
                     } else {

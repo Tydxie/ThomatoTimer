@@ -337,22 +337,17 @@ class TimerViewModel: ObservableObject {
         
         Task {
             switch timerState.currentPhase {
-            case .warmup:
-                if let trackId = spotify.selectedWarmupTrackId {
-                    print("🎵 Playing Spotify warmup track")
-                    await spotify.playTrack(trackId: trackId)
+            case .warmup, .shortBreak, .longBreak:
+                if let playlistId = spotify.selectedBreakPlaylistId {
+                    print("🎵 Playing Spotify warmup/break playlist")
+                    await spotify.playPlaylist(playlistId: playlistId)
+                } else {
+                    await spotify.pausePlayback()
                 }
             case .work:
                 if let playlistId = spotify.selectedWorkPlaylistId {
                     print("🎵 Playing Spotify work playlist")
                     await spotify.playPlaylist(playlistId: playlistId)
-                }
-            case .shortBreak, .longBreak:
-                if let playlistId = spotify.selectedBreakPlaylistId {
-                    print("🎵 Playing Spotify break playlist")
-                    await spotify.playPlaylist(playlistId: playlistId)
-                } else {
-                    await spotify.pausePlayback()
                 }
             }
         }
@@ -363,22 +358,17 @@ class TimerViewModel: ObservableObject {
         
         Task {
             switch timerState.currentPhase {
-            case .warmup:
-                if let songId = appleMusic.selectedWarmupSongId {
-                    print("🎵 Playing Apple Music warmup song")
-                    await appleMusic.playSong(id: songId)
+            case .warmup, .shortBreak, .longBreak:
+                if let playlistId = appleMusic.selectedBreakPlaylistId {
+                    print("🎵 Playing Apple Music warmup/break playlist")
+                    await appleMusic.playPlaylist(id: playlistId)
+                } else {
+                    appleMusic.pause()
                 }
             case .work:
                 if let playlistId = appleMusic.selectedWorkPlaylistId {
                     print("🎵 Playing Apple Music work playlist")
                     await appleMusic.playPlaylist(id: playlistId)
-                }
-            case .shortBreak, .longBreak:
-                if let playlistId = appleMusic.selectedBreakPlaylistId {
-                    print("🎵 Playing Apple Music break playlist")
-                    await appleMusic.playPlaylist(id: playlistId)
-                } else {
-                    appleMusic.pause()
                 }
             }
         }
