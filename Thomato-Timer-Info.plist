@@ -20,12 +20,14 @@
         </dict>
     </array>
 
-    <!-- Required for MusicKit authorization -->
     <key>NSAppleMusicUsageDescription</key>
     <string>Thomodoro uses Apple Music to play your warmup, focus, and break playlists.</string>
 
-    <!-- Required for macOS if you access the local Music library -->
     <key>NSMusicUsageDescription</key>
     <string>Thomodoro may access your local Music library to match playlists.</string>
+
+    <!-- NEW: modern launch screen config (no storyboard needed) -->
+    <key>UILaunchScreen</key>
+    <dict/>
 </dict>
 </plist>

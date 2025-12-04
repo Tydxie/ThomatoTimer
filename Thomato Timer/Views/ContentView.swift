@@ -88,7 +88,7 @@ struct ContentView: View {
                     
                     // BOTTOM HALF - Timer UI
                     VStack(spacing: 16) {
-                        Spacer()
+                        
                         
                         // Phase Title
                         Text(viewModel.phaseTitle)

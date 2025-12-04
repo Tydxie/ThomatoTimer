@@ -425,21 +425,13 @@ struct SettingsView: View {
                                 Text("Warmup Song:")
                                     .frame(width: 120, alignment: .leading)
                                 
-                                if let trackName = spotifyManager.warmupTrackName {
-                                    Text(trackName)
+                                Menu {
+                                    Button("Select Song...") {
+                                        showingTrackSearch = true
+                                    }
+                                } label: {
+                                    Text(spotifyManager.warmupTrackName ?? "None")
                                         .lineLimit(1)
-                                        .font(.caption)
-                                    Spacer()
-                                    Button("Change") { showingTrackSearch = true }
-                                        .buttonStyle(.borderless)
-                                        .font(.caption)
-                                } else {
-                                    Text("None selected")
-                                        .foregroundColor(.secondary)
-                                        .font(.caption)
-                                    Spacer()
-                                    Button("Select Song") { showingTrackSearch = true }
-                                        .buttonStyle(.bordered)
                                 }
                             }
                         }
@@ -555,21 +547,13 @@ struct SettingsView: View {
                                 Text("Warmup Song:")
                                     .frame(width: 120, alignment: .leading)
                                 
-                                if let songName = appleMusicManager.warmupSongName {
-                                    Text(songName)
+                                Menu {
+                                    Button("Select Song...") {
+                                        showingAppleMusicSearch = true
+                                    }
+                                } label: {
+                                    Text(appleMusicManager.warmupSongName ?? "None")
                                         .lineLimit(1)
-                                        .font(.caption)
-                                    Spacer()
-                                    Button("Change") { showingAppleMusicSearch = true }
-                                        .buttonStyle(.borderless)
-                                        .font(.caption)
-                                } else {
-                                    Text("None selected")
-                                        .foregroundColor(.secondary)
-                                        .font(.caption)
-                                    Spacer()
-                                    Button("Select Song") { showingAppleMusicSearch = true }
-                                        .buttonStyle(.bordered)
                                 }
                             }
                         }
