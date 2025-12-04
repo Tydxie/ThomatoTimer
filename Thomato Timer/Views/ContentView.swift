@@ -63,16 +63,9 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     // TOP HALF - Project Picker + Image
                     VStack(spacing: 16) {
-                        // Project Picker + Progress
-                        VStack(spacing: 8) {
-                            ProjectSwitcherView(viewModel: viewModel)
-                            
-                            // Progress bar (only if project selected)
-                            if let currentProject = viewModel.projectManager.currentProject {
-                                ProjectProgressBar(project: currentProject)
-                            }
-                        }
-                        .padding(.horizontal)
+                        // Project Picker
+                        ProjectSwitcherView(viewModel: viewModel)
+                            .padding(.horizontal)
                         
                         Spacer()
                         
@@ -485,51 +478,6 @@ struct ContentView: View {
         }
     }
 }
-
-// MARK: - iOS Progress Bar (inline)
-
-#if os(iOS)
-struct ProjectProgressBar: View {
-    let project: Project
-    var statsManager = StatisticsManager.shared
-    
-    var body: some View {
-        let totalHours = Int(statsManager.totalHoursForProject(project.id))
-        let nextMilestone = Milestone.nextMilestone(for: totalHours)
-        let targetHours = nextMilestone?.hours ?? 2000
-        let progress = Double(totalHours) / Double(targetHours)
-        
-        HStack(spacing: 12) {
-            Text(project.displayName)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.blue)
-                        .frame(width: geometry.size.width * min(progress, 1.0), height: 8)
-                }
-            }
-            .frame(height: 8)
-            
-            Text("\(totalHours)h/\(targetHours)h")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .monospacedDigit()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(8)
-    }
-}
-#endif
 
 // MARK: - macOS Toolbar Progress View
 
