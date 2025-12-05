@@ -84,41 +84,8 @@ class TimerViewModel: ObservableObject {
         stopCountdown()
         playBeep()
         
-        // If skipping a work/break session, log the actual time worked so far
-        let currentPhase = timerState.currentPhase
-        if currentPhase != .warmup {
-            var actualDurationMinutes: Int
-            if let startTime = sessionStartTime {
-                let elapsedTime = Date().timeIntervalSince(startTime) - accumulatedPausedTime
-                actualDurationMinutes = max(1, Int(round(elapsedTime / 60.0)))
-                print("⏭️ Skipped - logging actual time worked: \(actualDurationMinutes) min")
-                
-                let currentProjectId = projectManager.currentProjectId
-                
-                switch currentPhase {
-                case .work:
-                    StatisticsManager.shared.logSession(
-                        type: .work,
-                        durationMinutes: actualDurationMinutes,
-                        projectId: currentProjectId
-                    )
-                case .shortBreak:
-                    StatisticsManager.shared.logSession(
-                        type: .shortBreak,
-                        durationMinutes: actualDurationMinutes,
-                        projectId: currentProjectId
-                    )
-                case .longBreak:
-                    StatisticsManager.shared.logSession(
-                        type: .longBreak,
-                        durationMinutes: actualDurationMinutes,
-                        projectId: currentProjectId
-                    )
-                case .warmup:
-                    break
-                }
-            }
-        }
+        // Log elapsed time before skipping
+        logElapsedTime()
         
         timerState.startNextPhase()
         
@@ -134,6 +101,11 @@ class TimerViewModel: ObservableObject {
     }
     
     func reset() {
+        // Log elapsed time before resetting (if timer was active)
+        if timerState.isRunning || timerState.isPaused {
+            logElapsedTime()
+        }
+        
         // Stop timer first
         stopCountdown()
         
@@ -182,6 +154,11 @@ class TimerViewModel: ObservableObject {
     // MARK: - Project Switching
     
     func switchProject(to project: Project?) {
+        // Log elapsed time to current project before switching
+        if timerState.isRunning || timerState.isPaused {
+            logElapsedTime()
+        }
+        
         // Pause timer if running
         if timerState.isRunning {
             lastPauseTime = Date()
@@ -193,6 +170,13 @@ class TimerViewModel: ObservableObject {
         // Switch project
         projectManager.selectProject(project)
         print("🔄 Switched to project: \(project?.displayName ?? "Freestyle")")
+        
+        // Reset session tracking for new project
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
+        if timerState.isPaused {
+            lastPauseTime = Date()
+        }
     }
     
     // MARK: - Private Timer Logic
@@ -235,43 +219,8 @@ class TimerViewModel: ObservableObject {
         
         let completedPhase = timerState.currentPhase
         
-        // Calculate actual elapsed time (not configured duration)
-        var actualDurationMinutes: Int
-        if let startTime = sessionStartTime {
-            let elapsedTime = Date().timeIntervalSince(startTime) - accumulatedPausedTime
-            actualDurationMinutes = max(1, Int(round(elapsedTime / 60.0)))
-            print("⏱️ Actual time worked: \(actualDurationMinutes) min (elapsed: \(Int(elapsedTime))s, paused: \(Int(accumulatedPausedTime))s)")
-        } else {
-            // Fallback to configured duration if no start time tracked
-            actualDurationMinutes = Int(currentPhaseDuration / 60)
-            print("⚠️ No session start time, using configured duration: \(actualDurationMinutes) min")
-        }
-        
-        let currentProjectId = projectManager.currentProjectId
-        
-        // Log completed session to statistics
-        switch completedPhase {
-        case .work:
-            StatisticsManager.shared.logSession(
-                type: .work,
-                durationMinutes: actualDurationMinutes,
-                projectId: currentProjectId
-            )
-        case .shortBreak:
-            StatisticsManager.shared.logSession(
-                type: .shortBreak,
-                durationMinutes: actualDurationMinutes,
-                projectId: currentProjectId
-            )
-        case .longBreak:
-            StatisticsManager.shared.logSession(
-                type: .longBreak,
-                durationMinutes: actualDurationMinutes,
-                projectId: currentProjectId
-            )
-        case .warmup:
-            break // Don't log warmup
-        }
+        // Log elapsed time
+        logElapsedTime()
         
         timerState.startNextPhase()
         
@@ -299,6 +248,65 @@ class TimerViewModel: ObservableObject {
         accumulatedPausedTime = 0
         startCountdown()
         playMusicForCurrentPhase()
+    }
+    
+    // MARK: - Session Logging
+    
+    /// Logs elapsed time for the current phase to statistics
+    private func logElapsedTime() {
+        let currentPhase = timerState.currentPhase
+        
+        // Don't log warmup
+        guard currentPhase != .warmup else { return }
+        
+        // Need a valid session start time
+        guard let startTime = sessionStartTime else {
+            print("⚠️ No session start time, cannot log elapsed time")
+            return
+        }
+        
+        // Account for current pause if paused
+        var totalPausedTime = accumulatedPausedTime
+        if timerState.isPaused, let pauseStart = lastPauseTime {
+            totalPausedTime += Date().timeIntervalSince(pauseStart)
+        }
+        
+        let elapsedTime = Date().timeIntervalSince(startTime) - totalPausedTime
+        let actualDurationMinutes = Int(round(elapsedTime / 60.0))
+        
+        // Only log if at least 1 minute
+        guard actualDurationMinutes >= 1 else {
+            print("⏱️ Less than 1 minute elapsed (\(Int(elapsedTime))s), not logging")
+            return
+        }
+        
+        let currentProjectId = projectManager.currentProjectId
+        let projectName = projectManager.currentProject?.displayName ?? "Freestyle"
+        
+        print("📊 Logging \(actualDurationMinutes) min of \(currentPhase) to \(projectName)")
+        
+        switch currentPhase {
+        case .work:
+            StatisticsManager.shared.logSession(
+                type: .work,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .shortBreak:
+            StatisticsManager.shared.logSession(
+                type: .shortBreak,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .longBreak:
+            StatisticsManager.shared.logSession(
+                type: .longBreak,
+                durationMinutes: actualDurationMinutes,
+                projectId: currentProjectId
+            )
+        case .warmup:
+            break
+        }
     }
     
     // MARK: - Music Integration
