@@ -57,35 +57,51 @@ struct StatisticsView: View {
     #endif
     
     // MARK: - macOS Layout
-    
+
     #if os(macOS)
     private var macOSLayout: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header
+        VStack(spacing: 0) {
+            // Top bar (title + Done)
+            HStack {
                 Text("Statistics")
-                    .font(.largeTitle)
+                    .font(.title2)
                     .bold()
-                    .padding(.top, 20)
                 
-                // TODAY Section
-                TodayStatsCard()
+                Spacer()
                 
-                // ALL TIME Section
-                AllTimeStatsCard()
-                
-                // Member since
-                if let firstUse = statsManager.firstUseDate {
-                    Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 10)
-                        .padding(.bottom, 20)
+                Button("Done") {
+                    dismiss()
                 }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.cancelAction) // Esc closes the sheet as well
             }
-            .padding(.horizontal, 24)
+            .padding([.top, .horizontal])
+            .padding(.bottom, 8)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    // TODAY Section
+                    TodayStatsCard()
+                    
+                    // ALL TIME Section
+                    AllTimeStatsCard()
+                    
+                    // Member since
+                    if let firstUse = statsManager.firstUseDate {
+                        Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 10)
+                            .padding(.bottom, 20)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+            }
+            .frame(width: 520, height: 600)
         }
-        .frame(width: 520, height: 600)
     }
     #endif
 }

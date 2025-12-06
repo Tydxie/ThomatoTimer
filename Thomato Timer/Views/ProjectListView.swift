@@ -88,14 +88,14 @@ struct ProjectListView: View {
     #endif
     
     // MARK: - macOS Layout
-    
+
     #if os(macOS)
     private var macOSLayout: some View {
         VStack(spacing: 0) {
-            // Header
+            // Top bar (title + New + Done)
             HStack {
                 Text("My Projects")
-                    .font(.title)
+                    .font(.title2)
                     .bold()
                 
                 Spacer()
@@ -108,14 +108,22 @@ struct ProjectListView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.thTeal)
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.cancelAction) // Esc to close
             }
-            .padding()
+            .padding([.top, .horizontal])
+            .padding(.bottom, 8)
             
             Divider()
             
             // Project List
             if projectManager.projects.isEmpty {
                 emptyStateView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
@@ -159,6 +167,7 @@ struct ProjectListView: View {
         }
     }
     #endif
+
     
     // MARK: - Shared Empty State
     

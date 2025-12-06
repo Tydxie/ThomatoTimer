@@ -232,109 +232,120 @@ struct SettingsView: View {
     #endif
     
     // MARK: - macOS Layout
-    
+
     #if os(macOS)
     private var macOSLayout: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                HStack {
-                    Text("Settings")
-                        .font(.title2)
-                        .bold()
-                    
-                    Spacer()
-                    
-                    Button("View Statistics") {
-                        showingStats = true
-                    }
-                    .buttonStyle(.bordered)
-                }
+        VStack(spacing: 0) {
+            // Top bar (title + actions)
+            HStack {
+                Text("Settings")
+                    .font(.title2)
+                    .bold()
                 
-                // Timer Settings Section
-                GroupBox(label: Label("Timer Settings", systemImage: "clock")) {
-                    VStack(spacing: 15) {
-                        HStack {
-                            Text("Work Session (Mins):")
-                                .frame(width: 180, alignment: .leading)
-                            TextField("Minutes", value: $viewModel.timerState.workDuration, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                        }
-                        
-                        HStack {
-                            Text("Short Break (Mins):")
-                                .frame(width: 180, alignment: .leading)
-                            TextField("Minutes", value: $viewModel.timerState.shortBreakDuration, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                        }
-                        
-                        HStack {
-                            Text("Long Break (Mins):")
-                                .frame(width: 180, alignment: .leading)
-                            TextField("Minutes", value: $viewModel.timerState.longBreakDuration, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                        }
-                        
-                        HStack {
-                            Text("Sessions until long break:")
-                                .frame(width: 180, alignment: .leading)
-                            TextField("Count", value: $viewModel.timerState.sessionsUntilLongBreak, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                        }
-                        
-                        HStack {
-                            Text("Warmup Duration:")
-                                .frame(width: 180, alignment: .leading)
-                            Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
-                                Text("5 min").tag(5)
-                                Text("10 min").tag(10)
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 120)
-                        }
-                        
-                        
-                    }
-                    .padding(.vertical, 10)
-                }
+                Spacer()
                 
-                // Music Integration Section
-                GroupBox(label: Label("Music Integration", systemImage: "music.note")) {
-                    VStack(spacing: 15) {
-                        HStack {
-                            Text("Service:")
-                                .frame(width: 180, alignment: .leading)
-                            
-                            Picker("", selection: $selectedService) {
-                                ForEach(MusicService.allCases) { service in
-                                    Text(service.rawValue).tag(service)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .frame(width: 120)
-                        }
-                        
-                        Divider()
-                        
-                        if selectedService == .spotify {
-                            spotifySectionMac
-                        } else if selectedService == .appleMusic {
-                            appleMusicSectionMac
-                        } else {
-                            Text("No music service selected")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        }
-                    }
-                    .padding(.vertical, 10)
+                Button("View Statistics") {
+                    showingStats = true
                 }
+                .buttonStyle(.bordered)
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.cancelAction) // also responds to Esc
             }
-            .padding()
+            .padding([.top, .horizontal])
+            .padding(.bottom, 8)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Timer Settings Section
+                    GroupBox(label: Label("Timer Settings", systemImage: "clock")) {
+                        VStack(spacing: 15) {
+                            HStack {
+                                Text("Work Session (Mins):")
+                                    .frame(width: 180, alignment: .leading)
+                                TextField("Minutes", value: $viewModel.timerState.workDuration, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                            }
+                            
+                            HStack {
+                                Text("Short Break (Mins):")
+                                    .frame(width: 180, alignment: .leading)
+                                TextField("Minutes", value: $viewModel.timerState.shortBreakDuration, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                            }
+                            
+                            HStack {
+                                Text("Long Break (Mins):")
+                                    .frame(width: 180, alignment: .leading)
+                                TextField("Minutes", value: $viewModel.timerState.longBreakDuration, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                            }
+                            
+                            HStack {
+                                Text("Sessions until long break:")
+                                    .frame(width: 180, alignment: .leading)
+                                TextField("Count", value: $viewModel.timerState.sessionsUntilLongBreak, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                            }
+                            
+                            HStack {
+                                Text("Warmup Duration:")
+                                    .frame(width: 180, alignment: .leading)
+                                Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
+                                    Text("5 min").tag(5)
+                                    Text("10 min").tag(10)
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 120)
+                            }
+                        }
+                        .padding(.vertical, 10)
+                    }
+                    
+                    // Music Integration Section
+                    GroupBox(label: Label("Music Integration", systemImage: "music.note")) {
+                        VStack(spacing: 15) {
+                            HStack {
+                                Text("Service:")
+                                    .frame(width: 180, alignment: .leading)
+                                
+                                Picker("", selection: $selectedService) {
+                                    ForEach(MusicService.allCases) { service in
+                                        Text(service.rawValue).tag(service)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 120)
+                            }
+                            
+                            Divider()
+                            
+                            if selectedService == .spotify {
+                                spotifySectionMac
+                            } else if selectedService == .appleMusic {
+                                appleMusicSectionMac
+                            } else {
+                                Text("No music service selected")
+                                    .foregroundColor(.secondary)
+                                    .padding()
+                            }
+                        }
+                        .padding(.vertical, 10)
+                    }
+                }
+                .padding()
+            }
+            .frame(width: 480, height: 400)
         }
-        .frame(width: 480, height: 400)
         .sheet(isPresented: $showingStats) {
             StatisticsView()
         }
