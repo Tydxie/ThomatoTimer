@@ -11,7 +11,7 @@ import Observation
 import CryptoKit
 
 @Observable
-final class SpotifyManager: NSObject {   // <- inherit from NSObject for selector-based Timer
+final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     // MARK: - Published State
     var isAuthenticated = false
     var accessToken: String?
@@ -283,7 +283,7 @@ final class SpotifyManager: NSObject {   // <- inherit from NSObject for selecto
         Client ID: \(SpotifyConfig.clientID.prefix(15))...
         Redirect URI: \(SpotifyConfig.redirectURI)
         Auth Method: PKCE (S256)
-        Scopes: \(SpotifyConfig.scopes.joined(separator: ", "))
+        Scopes: \(SpotifyConfig.scopeString)
         
         Status: \(isAuthenticated ? "✅ Authenticated" : "⏳ Not authenticated")
         """
@@ -325,6 +325,40 @@ final class SpotifyManager: NSObject {   // <- inherit from NSObject for selecto
             await MainActor.run {
                 errorMessage = "Error fetching playlists: \(error.localizedDescription)"
             }
+        }
+    }
+    
+    // MARK: - Playlist Metadata
+    
+    /// Get total number of tracks in a playlist
+    private func getPlaylistTrackCount(playlistId: String) async -> Int? {
+        await ensureValidToken()
+        guard let accessToken = self.accessToken else { return nil }
+        
+        guard let url = URL(string: "\(SpotifyConfig.apiBaseURL)/playlists/\(playlistId)?fields=tracks.total") else {
+            return nil
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return nil
+            }
+            
+            struct PlaylistTrackCountResponse: Codable {
+                struct Tracks: Codable { let total: Int }
+                let tracks: Tracks
+            }
+            
+            let decoded = try JSONDecoder().decode(PlaylistTrackCountResponse.self, from: data)
+            return decoded.tracks.total
+        } catch {
+            print("❌ Error getting playlist track count: \(error)")
+            return nil
         }
     }
     
@@ -615,7 +649,7 @@ final class SpotifyManager: NSObject {   // <- inherit from NSObject for selecto
         }
     }
     
-    /// Play a playlist (with shuffle enabled on the target device)
+    /// Play a playlist (with shuffle enabled and random starting track)
     func playPlaylist(playlistId: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -637,7 +671,11 @@ final class SpotifyManager: NSObject {   // <- inherit from NSObject for selecto
         // Enable shuffle first
         await enableShuffle(on: targetDevice.id)
         
-        print("🎵 Playing playlist on device: \(targetDevice.name) (shuffled)")
+        // Get playlist track count so we can start at a random track
+        let trackCount = await getPlaylistTrackCount(playlistId: playlistId) ?? 0
+        let randomOffset = trackCount > 0 ? Int.random(in: 0..<trackCount) : 0
+        
+        print("🎵 Playing playlist on device: \(targetDevice.name) (shuffled, starting at index \(randomOffset))")
         
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
@@ -646,7 +684,7 @@ final class SpotifyManager: NSObject {   // <- inherit from NSObject for selecto
         
         let body: [String: Any] = [
             "context_uri": "spotify:playlist:\(playlistId)",
-            "offset": ["position": 0],
+            "offset": ["position": randomOffset],
             "position_ms": 0
         ]
         
