@@ -11,7 +11,7 @@ import Observation
 import CryptoKit
 
 @Observable
-final class SpotifyManager {
+final class SpotifyManager: NSObject {   // <- inherit from NSObject for selector-based Timer
     // MARK: - Published State
     var isAuthenticated = false
     var accessToken: String?
@@ -426,17 +426,26 @@ final class SpotifyManager {
         
         // Fetch immediately
         Task {
-            await fetchCurrentPlayback()
+            await self.fetchCurrentPlayback()
         }
         
-        // Then poll every 3 seconds to detect track changes
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            Task {
-                await self.fetchCurrentPlayback()
-            }
-        }
+        // Use selector-based Timer to avoid @Sendable capture issues
+        pollingTimer = Timer.scheduledTimer(
+            timeInterval: 3.0,
+            target: self,
+            selector: #selector(handlePollingTimer(_:)),
+            userInfo: nil,
+            repeats: true
+        )
+        
         print("🎵 Started Spotify playback polling")
+    }
+    
+    /// Timer callback
+    @objc private func handlePollingTimer(_ timer: Timer) {
+        Task {
+            await self.fetchCurrentPlayback()
+        }
     }
     
     /// Stop polling - call when music stops or service changes
@@ -520,6 +529,36 @@ final class SpotifyManager {
         }
     }
     
+    // MARK: - Shuffle Control
+    
+    /// Enable shuffle on the target device
+    private func enableShuffle(on deviceId: String) async {
+        await ensureValidToken()
+        guard let accessToken = self.accessToken else { return }
+        
+        guard let url = URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/shuffle?state=true&device_id=\(deviceId)") else {
+            print("❌ Invalid shuffle URL")
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
+                    print("🔀 Shuffle enabled on device: \(deviceId)")
+                } else {
+                    print("❌ Failed to enable shuffle. Status: \(httpResponse.statusCode)")
+                }
+            }
+        } catch {
+            print("❌ Error enabling shuffle: \(error)")
+        }
+    }
+    
     // MARK: - Playback Control
     
     /// Play a specific track
@@ -576,7 +615,7 @@ final class SpotifyManager {
         }
     }
     
-    /// Play a playlist
+    /// Play a playlist (with shuffle enabled on the target device)
     func playPlaylist(playlistId: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -595,7 +634,10 @@ final class SpotifyManager {
         // Use active device, or first available
         let targetDevice = devices.first(where: { $0.is_active }) ?? devices.first!
         
-        print("🎵 Playing playlist on device: \(targetDevice.name)")
+        // Enable shuffle first
+        await enableShuffle(on: targetDevice.id)
+        
+        print("🎵 Playing playlist on device: \(targetDevice.name) (shuffled)")
         
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
@@ -622,6 +664,9 @@ final class SpotifyManager {
                     }
                 } else {
                     print("❌ Play failed: \(httpResponse.statusCode)")
+                    if let errorString = String(data: data, encoding: .utf8) {
+                        print("Error: \(errorString)")
+                    }
                 }
             }
         } catch {
