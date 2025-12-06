@@ -41,6 +41,12 @@ struct SettingsView: View {
                     Stepper("Long Break: \(viewModel.timerState.longBreakDuration) min",
                             value: $viewModel.timerState.longBreakDuration, in: 1...60)
                     
+                    Stepper(
+                        "Sessions bef. long break: \(viewModel.timerState.sessionsUntilLongBreak)",
+                        value: $viewModel.timerState.sessionsUntilLongBreak,
+                        in: 2...8
+                    )
+                    
                     HStack {
                         Text("Warmup Duration")
                         Spacer()
@@ -51,6 +57,8 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                         .frame(width: 120)
                     }
+                    
+                  
                 } header: {
                     Label("Timer Settings", systemImage: "clock")
                 }
@@ -270,6 +278,14 @@ struct SettingsView: View {
                         }
                         
                         HStack {
+                            Text("Sessions until long break:")
+                                .frame(width: 180, alignment: .leading)
+                            TextField("Count", value: $viewModel.timerState.sessionsUntilLongBreak, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 60)
+                        }
+                        
+                        HStack {
                             Text("Warmup Duration:")
                                 .frame(width: 180, alignment: .leading)
                             Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
@@ -279,6 +295,8 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                             .frame(width: 120)
                         }
+                        
+                        
                     }
                     .padding(.vertical, 10)
                 }

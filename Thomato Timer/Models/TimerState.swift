@@ -28,13 +28,15 @@ struct TimerState {
     var longBreakDuration: Int = 20
     var warmupDuration: Int = 5  // 5 or 10 minutes
     
-    // Constants
-    let sessionsUntilLongBreak: Int = 4
-    let totalSessionsBeforeReset: Int = 8
+    // User setting: how many work sessions before a long break
+    var sessionsUntilLongBreak: Int = 4
     
     // Computed property for checkmarks
     var checkmarks: String {
-        String(repeating: "✓", count: completedWorkSessions % sessionsUntilLongBreak)
+        // Avoid division by zero if user somehow sets 0
+        guard sessionsUntilLongBreak > 0 else { return "" }
+        let count = completedWorkSessions % sessionsUntilLongBreak
+        return String(repeating: "✓", count: count)
     }
     
     mutating func startWarmup() {
@@ -49,20 +51,17 @@ struct TimerState {
             // After warmup, start first work session
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
+            isRunning = true
+            isPaused = false
             return
         }
         
         if currentPhase == .work {
             completedWorkSessions += 1
             
-            // Check if we've completed 8 sessions (4 full cycles)
-            if completedWorkSessions >= totalSessionsBeforeReset {
-                reset()
-                return
-            }
-            
-            // Decide break type
-            if completedWorkSessions % sessionsUntilLongBreak == 0 {
+            // Decide break type based on sessionsUntilLongBreak
+            if sessionsUntilLongBreak > 0,
+               completedWorkSessions % sessionsUntilLongBreak == 0 {
                 currentPhase = .longBreak
                 timeRemaining = TimeInterval(longBreakDuration * 60)
             } else {
@@ -74,6 +73,9 @@ struct TimerState {
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
         }
+        
+        isRunning = true
+        isPaused = false
     }
     
     mutating func pause() {
