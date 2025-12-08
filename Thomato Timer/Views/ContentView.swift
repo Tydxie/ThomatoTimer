@@ -141,7 +141,7 @@ struct ContentView: View {
                                 viewModel.toggleTimer()
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.thGold)
+                            .tint(.thomodoroGold)
                             
                             Button("Reset") { viewModel.reset() }
                                 .buttonStyle(.bordered)
@@ -162,6 +162,11 @@ struct ContentView: View {
             .navigationTitle("Thomodoro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                       Text("Thomodoro")
+                           .font(.headline)
+                           .foregroundColor(.thomodoroGold)
+                   }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gearshape")
@@ -390,7 +395,7 @@ struct ContentView: View {
                         viewModel.toggleTimer()
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.thGold)
+                    .tint(.thomodoroGold)
                     .foregroundColor(.thBlack)
                     
                     Button("Reset") { viewModel.reset() }

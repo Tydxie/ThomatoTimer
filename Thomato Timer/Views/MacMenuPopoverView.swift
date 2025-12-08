@@ -134,7 +134,7 @@ struct MacMenuPopoverView: View {
                             viewModel.toggleTimer()
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.thGold)
+                        .tint(.thomodoroGold)
                         .foregroundColor(.thBlack)
                         
                         Button("Reset") { viewModel.reset() }

@@ -15,9 +15,11 @@ extension Color {
     // Teal #b9c4bc
     static let thTeal   = Color(red: 0.725, green: 0.769, blue: 0.737)
     
-    // Gold #c6a873
-    static let thGold   = Color(red: 0.776, green: 0.659, blue: 0.451)
     
-    // Soft background pink (you can tweak this)
-    static let thPinkBG = Color(red: 1.0, green: 0.95, blue: 0.94)
+    // Thomdoro gold color
+    static let thomodoroGold = Color(red: 0.83, green: 0.66, blue: 0.34)
+    
+    static let thomodoroBlue = Color(red: 0.0, green: 0.42, blue: 0.50)
+    
+    
 }
