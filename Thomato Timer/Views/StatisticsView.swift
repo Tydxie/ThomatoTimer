@@ -97,10 +97,10 @@ struct StatisticsView: View {
                             .padding(.bottom, 20)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 1)
                 .padding(.top, 20)
             }
-            .frame(width: 520, height: 600)
+            .frame(width: 380, height: 520)
         }
     }
     #endif

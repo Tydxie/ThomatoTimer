@@ -143,7 +143,7 @@ struct ProjectListView: View {
                 }
             }
         }
-        .frame(width: 600, height: 500)
+        .frame(width: 380, height: 520)
         .sheet(isPresented: $showingNewProject) {
             NewProjectView()
         }

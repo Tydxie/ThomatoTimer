@@ -255,11 +255,17 @@ struct ContentView: View {
             }
             Button("Skip", role: .cancel) { }
         } message: {
-            Text("Create projects and track your progress through milestones: 10h, 30h, 50h, 100h, 500h, 1000h, 2000h. Every session counts!")
+            Text("Start Tracking Your Progress", comment: "Alert explaining project milestones")
         }
         .onAppear {
             setupOnAppear()
-            menuBarManager.setup(viewModel: viewModel)
+            
+            // 🔹 NEW: pass managers into MenuBarManager so it can build the popover
+            menuBarManager.setup(
+                viewModel: viewModel,
+                spotifyManager: spotifyManager,
+                appleMusicManager: appleMusicManager
+            )
             
             NotificationCenter.default.addObserver(
                 forName: .toggleTimer,

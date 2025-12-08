@@ -21,18 +21,18 @@
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Launch" translatesAutoresizingMaskIntoConstraints="NO" id="CTq-LN-DVc">
-                                <rect key="frame" x="32" y="255.33333333333334" width="341.33333333333331" height="341.33333333333326"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Launch" translatesAutoresizingMaskIntoConstraints="NO" id="DVf-ce-CfX">
+                                <rect key="frame" x="27.333333333333343" y="260" width="341.33333333333326" height="341.33333333333326"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.094117647058823528" green="0.13333333333333333" blue="0.21568627450980393" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.62745098039215685" green="0.62745098039215685" blue="0.62745098039215685" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="Bcu-3y-fUS" firstAttribute="centerX" secondItem="obG-Y5-kRd" secondAttribute="centerX" id="5cz-MP-9tL"/>
-                            <constraint firstItem="CTq-LN-DVc" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="7ko-uu-xmt"/>
                             <constraint firstItem="obG-Y5-kRd" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="20" symbolic="YES" id="SfN-ll-jLj"/>
+                            <constraint firstItem="DVf-ce-CfX" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="4.5" id="VmH-aM-Gqe"/>
                             <constraint firstAttribute="bottom" secondItem="obG-Y5-kRd" secondAttribute="bottom" constant="20" id="Y44-ml-fuU"/>
-                            <constraint firstItem="CTq-LN-DVc" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" constant="6" id="f85-tq-xkS"/>
+                            <constraint firstItem="DVf-ce-CfX" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" constant="1.5" id="gfv-4s-cQ2"/>
                         </constraints>
                     </view>
                 </viewController>

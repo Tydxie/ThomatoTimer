@@ -344,7 +344,7 @@ struct SettingsView: View {
                 }
                 .padding()
             }
-            .frame(width: 480, height: 400)
+            .frame(width: 300, height: 520)
         }
         .sheet(isPresented: $showingStats) {
             StatisticsView()

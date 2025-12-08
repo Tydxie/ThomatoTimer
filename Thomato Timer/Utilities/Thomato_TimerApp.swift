@@ -8,21 +8,87 @@
 import SwiftUI
 import UserNotifications
 
+// MARK: - macOS App State (menu bar + timer wiring)
+
+#if os(macOS)
+@MainActor
+final class MacAppState: ObservableObject {
+    // Shared instance so AppDelegate can reach the same state
+    static var shared: MacAppState?
+
+    let timerViewModel = TimerViewModel()
+    let spotifyManager = SpotifyManager()
+    let appleMusicManager = AppleMusicManager()
+    let menuBarManager = MenuBarManager()
+    
+    init() {
+        // Expose this instance globally (for AppDelegate URL handling)
+        MacAppState.shared = self
+        
+        // Wire music managers into the timer view model
+        timerViewModel.spotifyManager = spotifyManager
+        timerViewModel.appleMusicManager = appleMusicManager
+        timerViewModel.selectedService = .none
+        
+        // Set up the menu bar icon + popover UI
+        menuBarManager.setup(
+            viewModel: timerViewModel,
+            spotifyManager: spotifyManager,
+            appleMusicManager: appleMusicManager
+        )
+        
+        // Hook up NotificationCenter commands for Start/Pause, Reset, Skip
+        NotificationCenter.default.addObserver(
+            forName: .toggleTimer,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.timerViewModel.toggleTimer()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .resetTimer,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.timerViewModel.reset()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .skipTimer,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.timerViewModel.timerState.isRunning else { return }
+                self.timerViewModel.skipToNext()
+            }
+        }
+    }
+}
+#endif
+
+// MARK: - App Entry
+
 @main
 @MainActor
 struct Thomato_TimerApp: App {
     #if os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    #endif
-    
+    @StateObject private var macState = MacAppState()
+    #else
     @State private var spotifyManager = SpotifyManager()
+    #endif
     
     init() {
         // Configure URLCache for memory-only (no disk storage for compliance)
-        // This allows fast re-displays during the session without storing artwork to disk
         URLCache.shared = URLCache(
             memoryCapacity: 50_000_000,  // 50MB memory cache
-            diskCapacity: 0,              // No disk storage
+            diskCapacity: 0,             // No disk storage
             diskPath: nil
         )
         
@@ -33,17 +99,11 @@ struct Thomato_TimerApp: App {
     
     var body: some Scene {
         #if os(macOS)
-        Window("Thomodoro", id: "main") {
-            ContentView(spotifyManager: spotifyManager)
-                .onOpenURL { url in
-                    print("🎵 App received URL: \(url)")
-                    Task {
-                        await spotifyManager.handleRedirect(url: url)
-                    }
-                }
+        // No main window: app lives in the menu bar.
+        // We still need a scene for commands (menu bar shortcuts).
+        Settings {
+            EmptyView()
         }
-        .windowResizability(.contentSize)
-        .defaultPosition(.center)
         .commands {
             CommandGroup(replacing: .newItem) { }
             
@@ -65,10 +125,11 @@ struct Thomato_TimerApp: App {
             }
         }
         #else
+        // iOS: unchanged – regular window using ContentView
         WindowGroup {
             ContentView(spotifyManager: spotifyManager)
                 .onOpenURL { url in
-                    print("🎵 App received URL: \(url)")
+                    print("🎵 App received URL (iOS): \(url)")
                     Task {
                         await spotifyManager.handleRedirect(url: url)
                     }
