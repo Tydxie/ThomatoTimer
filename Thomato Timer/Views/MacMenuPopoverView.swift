@@ -79,9 +79,17 @@ struct MacMenuPopoverView: View {
                         .cornerRadius(8)
                         .shadow(radius: 3)
                     
-                    if selectedService == .spotify && isMusicPlaying {
-                        spotifyAttribution
+                    // 🔥 Always reserve space for attribution to prevent layout shifts
+                    Group {
+                        if selectedService == .spotify && isMusicPlaying {
+                            spotifyAttribution
+                        } else {
+                            // Invisible placeholder that maintains the same height
+                            spotifyAttribution
+                                .opacity(0)
+                        }
                     }
+                    .frame(height: 32) // Fixed height for 2-line attribution
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
