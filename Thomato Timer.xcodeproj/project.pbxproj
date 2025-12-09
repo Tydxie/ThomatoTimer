@@ -389,7 +389,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Thomato Timer/Thomato_Timer.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=*]" = "Thomato Timer/Thomato_Timer.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.1;
+				CURRENT_PROJECT_VERSION = 2.2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Thomato Timer/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;
@@ -434,7 +434,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Thomato Timer/Thomato_Timer.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.1;
+				CURRENT_PROJECT_VERSION = 2.2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Thomato Timer/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;

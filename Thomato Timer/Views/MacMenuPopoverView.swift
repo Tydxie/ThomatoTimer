@@ -11,13 +11,16 @@ import SwiftUI
 // MARK: - Shared popover size for ALL macOS sheets & dropdowns
 enum MacPopoverLayout {
     static let width: CGFloat = 380    // EDIT THIS to test width
-    static let height: CGFloat = 600   // EDIT THIS to test height
+    static let height: CGFloat = 620   // EDIT THIS to test height
 }
 
 struct MacMenuPopoverView: View {
     @ObservedObject var viewModel: TimerViewModel
     let spotifyManager: SpotifyManager
     let appleMusicManager: AppleMusicManager
+    
+    // Still injected so we can pass it down into SettingsView
+    @EnvironmentObject var menuBarManager: MenuBarManager
     
     @State private var selectedService: MusicService = .none
     @State private var showingSettings = false
@@ -62,7 +65,6 @@ struct MacMenuPopoverView: View {
             header
             Divider()
             
-            
             VStack(spacing: 16) {
                 
                 // Project switcher
@@ -88,7 +90,7 @@ struct MacMenuPopoverView: View {
                 Text(viewModel.phaseTitle)
                     .font(.title2)
                     .bold()
-                    .padding(.top, 30)
+                    .padding(.top, 20)
                 
                 // Timer value
                 Text(viewModel.displayTime)
@@ -113,7 +115,9 @@ struct MacMenuPopoverView: View {
                     .padding(.horizontal, 40)
                     
                     HStack {
-                        Text("0:00").font(.caption).foregroundColor(.secondary)
+                        Text("0:00")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         Spacer()
                         Text(viewModel.displayTime)
                             .font(.caption)
@@ -180,6 +184,8 @@ struct MacMenuPopoverView: View {
                 appleMusicManager: appleMusicManager,
                 selectedService: $selectedService
             )
+            // Pass the same MenuBarManager into Settings so the toggle works
+            .environmentObject(menuBarManager)
         }
         .sheet(isPresented: $showingProjectList) {
             ProjectListView()
@@ -198,7 +204,10 @@ struct MacMenuPopoverView: View {
             
             Spacer()
             
-            Button { showingSettings = true } label: {
+            // Gear now ONLY opens Settings
+            Button {
+                showingSettings = true
+            } label: {
                 Image(systemName: "gearshape")
                     .foregroundColor(.secondary)
             }

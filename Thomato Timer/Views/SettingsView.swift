@@ -16,6 +16,13 @@ struct SettingsView: View {
     @Binding var selectedService: MusicService
     @State private var showingStats = false
     
+    #if os(macOS)
+    // Stored preference used by the Mac menu bar popover behavior
+    @AppStorage("keepWindowOpen") private var keepWindowOpen = false
+    // 🔥 NEW: Access to MenuBarManager to force close when toggling off
+    @EnvironmentObject var menuBarManager: MenuBarManager
+    #endif
+    
     var body: some View {
         #if os(iOS)
         iOSLayout
@@ -58,7 +65,6 @@ struct SettingsView: View {
                         .frame(width: 120)
                     }
                     
-                  
                 } header: {
                     Label("Timer Settings", systemImage: "clock")
                 }
@@ -340,6 +346,26 @@ struct SettingsView: View {
                             }
                         }
                         .padding(.vertical, 10)
+                    }
+                    
+                    // 🔹 Window Behavior Section
+                    GroupBox(label: Label("Window Behavior", systemImage: "rectangle.topthird.inset")) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Keep timer dropdown open", isOn: $keepWindowOpen)
+                                .toggleStyle(.switch)
+                                .onChange(of: keepWindowOpen) { oldValue, newValue in
+                                    if !newValue {
+                                        // 🔥 User just turned it OFF - force close the popover
+                                        menuBarManager.checkAndCloseIfNeeded()
+                                    }
+                                }
+                            
+                            Text("When enabled, the menu bar timer window will stay open until you close it manually instead of closing when you click away.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 6)
                     }
                 }
                 .padding()
