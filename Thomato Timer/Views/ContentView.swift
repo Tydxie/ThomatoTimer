@@ -575,7 +575,7 @@ struct ProjectProgressToolbar: View {
                     .frame(width: 60, height: 6)
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.blue)
+                    .fill(Color.thTeal)
                     .frame(width: 60 * min(progress, 1.0), height: 6)
             }
 

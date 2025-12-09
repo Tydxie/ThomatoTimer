@@ -8,6 +8,12 @@
 #if os(macOS)
 import SwiftUI
 
+// MARK: - Shared popover size for ALL macOS sheets & dropdowns
+enum MacPopoverLayout {
+    static let width: CGFloat = 380    // EDIT THIS to test width
+    static let height: CGFloat = 600   // EDIT THIS to test height
+}
+
 struct MacMenuPopoverView: View {
     @ObservedObject var viewModel: TimerViewModel
     let spotifyManager: SpotifyManager
@@ -43,12 +49,9 @@ struct MacMenuPopoverView: View {
     
     private var currentImage: String {
         switch viewModel.timerState.currentPhase {
-        case .warmup:
-            return "warmup"
-        case .work:
-            return "tomato"
-        case .shortBreak, .longBreak:
-            return "break"
+        case .warmup: return "warmup"
+        case .work: return "tomato"
+        case .shortBreak, .longBreak: return "break"
         }
     }
     
@@ -57,118 +60,119 @@ struct MacMenuPopoverView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            
             Divider()
             
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Project switcher
-                    ProjectSwitcherView(viewModel: viewModel)
-                        .padding(.top, 8)
-                        .padding(.horizontal)
+            
+            VStack(spacing: 16) {
+                
+                // Project switcher
+                ProjectSwitcherView(viewModel: viewModel)
+                    .padding(.top, 8)
+                    .padding(.horizontal)
+                
+                // Artwork / phase image + Spotify attribution
+                VStack(spacing: 8) {
+                    artworkImageView
+                        .frame(width: 200, height: 200)
+                        .cornerRadius(8)
+                        .shadow(radius: 3)
                     
-                    // Artwork / phase image + Spotify attribution
-                    VStack(spacing: 8) {
-                        artworkImageView
-                            .frame(width: 200, height: 200)
-                            .cornerRadius(8)
-                            .shadow(radius: 3)
-                        
-                        if selectedService == .spotify && isMusicPlaying {
-                            spotifyAttribution
-                        }
+                    if selectedService == .spotify && isMusicPlaying {
+                        spotifyAttribution
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                
+                // Timer title
+                Text(viewModel.phaseTitle)
+                    .font(.title2)
+                    .bold()
+                    .padding(.top, 30)
+                
+                // Timer value
+                Text(viewModel.displayTime)
+                    .font(.system(size: 48, weight: .bold, design: .monospaced))
+                
+                // Slider
+                VStack(spacing: 4) {
+                    Slider(
+                        value: Binding(
+                            get: {
+                                let maxDur = viewModel.currentPhaseDuration
+                                return maxDur - viewModel.timerState.timeRemaining
+                            },
+                            set: { newValue in
+                                let maxDur = viewModel.currentPhaseDuration
+                                viewModel.timerState.timeRemaining = max(0.1, maxDur - newValue)
+                            }
+                        ),
+                        in: 0...viewModel.currentPhaseDuration
+                    )
+                    .tint(.thTeal)
+                    .padding(.horizontal, 40)
                     
-                    // Timer title
-                    Text(viewModel.phaseTitle)
-                        .font(.title2)
-                        .bold()
-                        .padding(.top, 8)
-                    
-                    // Timer value
-                    Text(viewModel.displayTime)
-                        .font(.system(size: 48, weight: .bold, design: .monospaced))
-                    
-                    // Slider
-                    VStack(spacing: 4) {
-                        Slider(
-                            value: Binding(
-                                get: {
-                                    let maxDur = viewModel.currentPhaseDuration
-                                    return maxDur - viewModel.timerState.timeRemaining
-                                },
-                                set: { newValue in
-                                    let maxDur = viewModel.currentPhaseDuration
-                                    viewModel.timerState.timeRemaining = max(0.1, maxDur - newValue)
-                                }
-                            ),
-                            in: 0...viewModel.currentPhaseDuration
-                        )
-                        .tint(.thTeal)
-                        .padding(.horizontal, 40)
-                        
-                        HStack {
-                            Text("0:00")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(viewModel.displayTime)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 40)
+                    HStack {
+                        Text("0:00").font(.caption).foregroundColor(.secondary)
+                        Spacer()
+                        Text(viewModel.displayTime)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    
-                    // Buttons
-                    HStack(spacing: 16) {
-                        if viewModel.timerState.isRunning {
-                            Button("Skip") { viewModel.skipToNext() }
-                                .buttonStyle(.bordered)
-                                .tint(.thTeal)
-                                .foregroundColor(.thBlack)
-                        }
-                        
-                        Button(viewModel.buttonTitle) {
-                            viewModel.toggleTimer()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.thomodoroGold)
-                        .foregroundColor(.thBlack)
-                        
-                        Button("Reset") { viewModel.reset() }
+                    .padding(.horizontal, 40)
+                }
+                
+                // Buttons
+                HStack(spacing: 16) {
+                    if viewModel.timerState.isRunning {
+                        Button("Skip") { viewModel.skipToNext() }
                             .buttonStyle(.bordered)
                             .tint(.thTeal)
                             .foregroundColor(.thBlack)
                     }
+                    
+                    Button(viewModel.buttonTitle) {
+                        viewModel.toggleTimer()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.thomodoroGold)
+                    .foregroundColor(.thBlack)
+                    
+                    Button("Reset") { viewModel.reset() }
+                        .buttonStyle(.bordered)
+                        .tint(.thTeal)
+                        .foregroundColor(.thBlack)
+                }
+                .font(.title3)
+                .padding(.top, 4)
+                
+                // Checkmarks
+                Text(viewModel.timerState.checkmarks)
                     .font(.title3)
                     .padding(.top, 4)
-                    
-                    // Checkmarks
-                    Text(viewModel.timerState.checkmarks)
-                        .font(.title3)
-                        .padding(.top, 4)
-                    
-                    Spacer(minLength: 8)
-                }
-                .padding(.bottom, 12)
+                
+                Spacer(minLength: 8)
             }
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(width: 360, height: 560)
-        // 🔹 Clear / glassy look for the dropdown
+        // MARK: - Fixed dropdown size
+        .frame(width: MacPopoverLayout.width,
+               height: MacPopoverLayout.height)
+        
+        // MARK: - Blur material
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(4)
-        // 🔹 Global accent color for controls (unless overridden)
+        
         .tint(.thTeal)
-        .onAppear {
-            // sync with view model if it already has a selected service
-            selectedService = viewModel.selectedService
-        }
+        
+        .onAppear { selectedService = viewModel.selectedService }
         .onChange(of: selectedService) { _, newValue in
             viewModel.selectedService = newValue
         }
+        
+        // MARK: - Sheets
         .sheet(isPresented: $showingSettings) {
             SettingsView(
                 viewModel: viewModel,
@@ -182,7 +186,7 @@ struct MacMenuPopoverView: View {
         }
     }
     
-    // MARK: - Header (Mac-only extras)
+    // MARK: - Header
     
     private var header: some View {
         HStack(spacing: 8) {
@@ -194,9 +198,7 @@ struct MacMenuPopoverView: View {
             
             Spacer()
             
-            Button {
-                showingSettings = true
-            } label: {
+            Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .foregroundColor(.secondary)
             }
@@ -215,15 +217,9 @@ struct MacMenuPopoverView: View {
     private var artworkImageView: some View {
         if let artworkURL = currentArtworkURL, isMusicPlaying {
             AsyncImage(url: artworkURL) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .clipped()
+                image.resizable().scaledToFill().clipped()
             } placeholder: {
-                Image(currentImage)
-                    .resizable()
-                    .scaledToFill()
-                    .clipped()
+                Image(currentImage).resizable().scaledToFill().clipped()
             }
         } else {
             Image(currentImage)
@@ -236,9 +232,7 @@ struct MacMenuPopoverView: View {
     // MARK: - Spotify Attribution
     
     private var spotifyAttribution: some View {
-        Button {
-            openInSpotify()
-        } label: {
+        Button { openInSpotify() } label: {
             HStack(spacing: 6) {
                 Image(systemName: "music.note")
                     .foregroundColor(.green)
@@ -267,7 +261,6 @@ struct MacMenuPopoverView: View {
     private func openInSpotify() {
         guard let urlString = spotifyManager.currentTrackSpotifyURL,
               let url = URL(string: urlString) else { return }
-        
         NSWorkspace.shared.open(url)
     }
 }
