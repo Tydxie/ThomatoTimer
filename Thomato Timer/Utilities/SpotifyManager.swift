@@ -39,6 +39,9 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     var currentTrackSpotifyURL: String?  // For attribution link back to Spotify
     private var currentTrackId: String?   // Track changes detection
     
+    // MARK: - Device Preference
+    private var preferredDeviceId: String?  // Remember user's device choice
+    
     // MARK: - Playback Polling
     private var pollingTimer: Timer?
     private var isPollingEnabled = false
@@ -611,8 +614,24 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Use active device, or first available
-        let targetDevice = devices.first(where: { $0.is_active }) ?? devices.first!
+        // 🔥 UPDATED Device selection priority:
+        // 1. Currently active device (user's most recent choice)
+        // 2. Previously used device (if still available and no active device)
+        // 3. First available device
+        let targetDevice: SpotifyDevice
+        if let active = devices.first(where: { $0.is_active }) {
+            targetDevice = active
+            preferredDeviceId = active.id  // Update preference to match user's choice
+            print("🎵 Using active device: \(targetDevice.name)")
+        } else if let preferredId = preferredDeviceId,
+                  let preferred = devices.first(where: { $0.id == preferredId }) {
+            targetDevice = preferred
+            print("🎵 Using preferred device: \(targetDevice.name)")
+        } else {
+            targetDevice = devices.first!
+            preferredDeviceId = targetDevice.id
+            print("🎵 Using first available device: \(targetDevice.name)")
+        }
         
         print("🎵 Playing track on device: \(targetDevice.name)")
         
@@ -665,8 +684,24 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Use active device, or first available
-        let targetDevice = devices.first(where: { $0.is_active }) ?? devices.first!
+        // 🔥 UPDATED Device selection priority:
+        // 1. Currently active device (user's most recent choice)
+        // 2. Previously used device (if still available and no active device)
+        // 3. First available device
+        let targetDevice: SpotifyDevice
+        if let active = devices.first(where: { $0.is_active }) {
+            targetDevice = active
+            preferredDeviceId = active.id  // Update preference to match user's choice
+            print("🎵 Using active device: \(targetDevice.name)")
+        } else if let preferredId = preferredDeviceId,
+                  let preferred = devices.first(where: { $0.id == preferredId }) {
+            targetDevice = preferred
+            print("🎵 Using preferred device: \(targetDevice.name)")
+        } else {
+            targetDevice = devices.first!
+            preferredDeviceId = targetDevice.id
+            print("🎵 Using first available device: \(targetDevice.name)")
+        }
         
         // Enable shuffle first
         await enableShuffle(on: targetDevice.id)

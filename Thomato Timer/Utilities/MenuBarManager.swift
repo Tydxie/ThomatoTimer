@@ -52,6 +52,9 @@ class MenuBarManager: ObservableObject {
             button.title = ""
             button.action = #selector(togglePopover(_:))
             button.target = self
+            
+            // 🔥 Auto-open dropdown with retry logic
+            self.attemptAutoOpen(retryCount: 0)
         }
         
         // Keeps icon-only behavior
@@ -60,7 +63,64 @@ class MenuBarManager: ObservableObject {
         }
     }
     
-    // 🔥 NEW: Manual check method called from SettingsView
+    // 🔥 Robust auto-open with validation and retry
+    private func attemptAutoOpen(retryCount: Int) {
+        let maxRetries = 5
+        let baseDelay: TimeInterval = 1.5  // Increased from 0.8
+        let retryDelay = baseDelay + (TimeInterval(retryCount) * 0.4)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + retryDelay) { [weak self] in
+            guard let self = self,
+                  let button = self.statusItem?.button else {
+                print("❌ Status button not ready (attempt \(retryCount + 1))")
+                if retryCount < maxRetries {
+                    self?.attemptAutoOpen(retryCount: retryCount + 1)
+                }
+                return
+            }
+            
+            // 🔥 Validate button has proper bounds
+            guard button.bounds.width > 0 && button.bounds.height > 0 else {
+                print("❌ Button bounds not ready (attempt \(retryCount + 1))")
+                if retryCount < maxRetries {
+                    self.attemptAutoOpen(retryCount: retryCount + 1)
+                }
+                return
+            }
+            
+            // 🔥 Ensure button window is available
+            guard button.window != nil else {
+                print("❌ Button window not ready (attempt \(retryCount + 1))")
+                if retryCount < maxRetries {
+                    self.attemptAutoOpen(retryCount: retryCount + 1)
+                }
+                return
+            }
+            
+            // 🔥 Force layout update to ensure positioning is correct
+            button.needsLayout = true
+            button.layoutSubtreeIfNeeded()
+            
+            print("✅ Attempting to open popover (attempt \(retryCount + 1))")
+            self.showPopover(button)
+            
+            // 🔥 Verify popover actually showed
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                guard let self = self else { return }
+                
+                if let popover = self.popover, popover.isShown {
+                    print("✅ Popover successfully shown!")
+                } else {
+                    print("❌ Popover failed to show (attempt \(retryCount + 1))")
+                    if retryCount < maxRetries {
+                        self.attemptAutoOpen(retryCount: retryCount + 1)
+                    }
+                }
+            }
+        }
+    }
+    
+    // 🔥 Manual check method called from SettingsView
     func checkAndCloseIfNeeded() {
         if !keepWindowOpen, let popover = popover, popover.isShown {
             popover.close()
@@ -84,9 +144,29 @@ class MenuBarManager: ObservableObject {
         guard
             let viewModel = viewModel,
             let spotifyManager = spotifyManager,
-            let appleMusicManager = appleMusicManager,
-            let button = statusItem?.button
-        else { return }
+            let appleMusicManager = appleMusicManager
+        else {
+            print("❌ Missing viewModel or managers")
+            return
+        }
+        
+        // Get button from sender if it's a button, otherwise from statusItem
+        guard let button = (sender as? NSButton) ?? statusItem?.button else {
+            print("❌ No button available")
+            return
+        }
+        
+        // 🔥 Ensure button bounds are valid
+        guard button.bounds.width > 0 && button.bounds.height > 0 else {
+            print("❌ Invalid button bounds")
+            return
+        }
+        
+        // 🔥 Force layout update before showing
+        button.needsLayout = true
+        button.layoutSubtreeIfNeeded()
+        
+        print("✅ Showing popover from button at bounds: \(button.bounds)")
         
         // Always create a fresh popover
         let popover = NSPopover()
@@ -109,6 +189,7 @@ class MenuBarManager: ObservableObject {
         popover.contentViewController = NSHostingController(rootView: rootView)
         self.popover = popover
         
+        // Show relative to the menu bar button
         popover.show(
             relativeTo: button.bounds,
             of: button,

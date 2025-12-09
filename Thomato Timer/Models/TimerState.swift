@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum TimerPhase {
+enum TimerPhase: String {
     case warmup
     case work
     case shortBreak
@@ -17,7 +17,7 @@ enum TimerPhase {
 struct TimerState {
     // Current state
     var currentPhase: TimerPhase = .warmup
-    var timeRemaining: TimeInterval = 0
+    var timeRemaining: TimeInterval = 5 * 60  // Start with 5 minutes (300 seconds)
     var isRunning: Bool = false
     var isPaused: Bool = false
     var completedWorkSessions: Int = 0
@@ -26,7 +26,16 @@ struct TimerState {
     var workDuration: Int = 60
     var shortBreakDuration: Int = 10
     var longBreakDuration: Int = 20
-    var warmupDuration: Int = 5  // 5 or 10 minutes
+    
+    // 🔥 When warmup duration changes, update timeRemaining if in warmup and not started
+    var warmupDuration: Int = 5 {
+        didSet {
+            // Only update if we're in warmup phase and timer hasn't started
+            if currentPhase == .warmup && !isRunning && !isPaused {
+                timeRemaining = TimeInterval(warmupDuration * 60)
+            }
+        }
+    }
     
     // User setting: how many work sessions before a long break
     var sessionsUntilLongBreak: Int = 4
@@ -91,7 +100,7 @@ struct TimerState {
     mutating func reset() {
         isRunning = false
         isPaused = false
-        timeRemaining = 0
+        timeRemaining = TimeInterval(warmupDuration * 60)  // Reset to warmup duration
         currentPhase = .warmup
         completedWorkSessions = 0
     }
