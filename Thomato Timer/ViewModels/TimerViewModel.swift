@@ -12,6 +12,7 @@ import AppKit
 #endif
 #if os(iOS)
 import AudioToolbox
+import UserNotifications
 #endif
 
 class TimerViewModel: ObservableObject {
@@ -52,6 +53,10 @@ class TimerViewModel: ObservableObject {
         accumulatedPausedTime = 0
         startCountdown()
         playMusicForCurrentPhase()
+        
+        #if os(iOS)
+        scheduleTimerCompletionNotification()
+        #endif
     }
     
     func toggleTimer() {
@@ -64,12 +69,20 @@ class TimerViewModel: ObservableObject {
             timerState.resume()
             startCountdown()
             playMusicForCurrentPhase()
+            
+            #if os(iOS)
+            scheduleTimerCompletionNotification()
+            #endif
         } else if timerState.isRunning {
             // Pause
             lastPauseTime = Date()
             timerState.pause()
             stopCountdown()
             pauseMusic()
+            
+            #if os(iOS)
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            #endif
         } else {
             // Start (warmup or first session)
             if timerState.currentPhase == .warmup {
@@ -97,6 +110,10 @@ class TimerViewModel: ObservableObject {
         if timerState.currentPhase != .warmup {
             startCountdown()
             playMusicForCurrentPhase()
+            
+            #if os(iOS)
+            scheduleTimerCompletionNotification()
+            #endif
         }
     }
     
@@ -118,20 +135,80 @@ class TimerViewModel: ObservableObject {
         
         // Stop music (safely)
         pauseMusic()
+        
+        #if os(iOS)
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        #endif
     }
     
     // MARK: - iOS Background Handling
     
+    /// Schedule notification for when timer completes
+    private func scheduleTimerCompletionNotification() {
+        #if os(iOS)
+        guard timerState.isRunning else { return }
+        
+        // Cancel any existing notifications
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+        
+        switch timerState.currentPhase {
+        case .warmup:
+            content.title = "Warmup Complete"
+            content.body = "Time to start working!"
+        case .work:
+            content.title = "Work Session Complete"
+            content.body = "Great job! Time for a break."
+        case .shortBreak:
+            content.title = "Break Complete"
+            content.body = "Ready to get back to work?"
+        case .longBreak:
+            content.title = "Long Break Complete"
+            content.body = "Feeling refreshed? Let's continue!"
+        }
+        
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: timerState.timeRemaining,
+            repeats: false
+        )
+        
+        let request = UNNotificationRequest(
+            identifier: "timer_completion",
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Failed to schedule notification: \(error)")
+            } else {
+                print("✅ Notification scheduled for \(self.timerState.timeRemaining)s")
+            }
+        }
+        #endif
+    }
+    
     func handleBackgroundTransition() {
+        #if os(iOS)
         guard timerState.isRunning else { return }
         backgroundTime = Date()
+        
+        // Schedule notification for timer completion
+        scheduleTimerCompletionNotification()
+        
         stopCountdown()
-        // Don't change isRunning state - we'll resume when returning
+        print("📱 App backgrounded - timer will continue tracking")
+        #endif
     }
     
     func handleForegroundTransition() {
-        guard timerState.isRunning, let bgTime = backgroundTime else {
-            backgroundTime = nil
+        #if os(iOS)
+        // Cancel pending notifications since app is active
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        guard let bgTime = backgroundTime else {
             return
         }
         
@@ -139,16 +216,48 @@ class TimerViewModel: ObservableObject {
         let timeInBackground = Date().timeIntervalSince(bgTime)
         backgroundTime = nil
         
-        // Subtract background time from remaining
-        timerState.timeRemaining = max(0, timerState.timeRemaining - timeInBackground)
+        print("📱 App foregrounded - was in background for \(Int(timeInBackground))s")
         
-        // Check if timer should have completed while in background
-        if timerState.timeRemaining <= 0 {
-            handleTimerComplete()
-        } else {
+        guard timerState.isRunning else { return }
+        
+        // Subtract background time from remaining
+        var remainingTime = timerState.timeRemaining - timeInBackground
+        
+        // Handle multiple phase completions if user was away for a long time
+        while remainingTime <= 0 && timerState.isRunning {
+            print("⏰ Timer completed while in background")
+            
+            let completedPhase = timerState.currentPhase
+            
+            // Log elapsed time for the completed phase
+            logElapsedTime()
+            
+            // Move to next phase
+            timerState.startNextPhase()
+            
+            // Reset session tracking
+            sessionStartTime = Date()
+            accumulatedPausedTime = 0
+            
+            // Add remaining negative time to next phase
+            remainingTime += timerState.timeRemaining
+            
+            // Send notification for completed phase
+            NotificationManager.shared.sendPhaseCompleteNotification(
+                phase: completedPhase,
+                nextPhase: timerState.currentPhase
+            )
+        }
+        
+        // Update final remaining time
+        timerState.timeRemaining = max(0, remainingTime)
+        
+        if timerState.timeRemaining > 0 && timerState.isRunning {
             // Resume countdown
             startCountdown()
+            playMusicForCurrentPhase()
         }
+        #endif
     }
     
     // MARK: - Project Switching
@@ -237,6 +346,10 @@ class TimerViewModel: ObservableObject {
         if timerState.currentPhase != .warmup || timerState.isRunning {
             startCountdown()
             playMusicForCurrentPhase()
+            
+            #if os(iOS)
+            scheduleTimerCompletionNotification()
+            #endif
         }
     }
     
@@ -248,6 +361,10 @@ class TimerViewModel: ObservableObject {
         accumulatedPausedTime = 0
         startCountdown()
         playMusicForCurrentPhase()
+        
+        #if os(iOS)
+        scheduleTimerCompletionNotification()
+        #endif
     }
     
     // MARK: - Session Logging
