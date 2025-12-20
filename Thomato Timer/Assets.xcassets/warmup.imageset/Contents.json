@@ -1,49 +1,49 @@
 {
   "images" : [
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A.png",
+      "filename" : "Logo_warmv1.jpg",
       "idiom" : "iphone",
       "scale" : "1x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A@2x.png",
+      "filename" : "Logo_warmv1@2x.jpg",
       "idiom" : "iphone",
       "scale" : "2x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A@3x.png",
+      "filename" : "Logo_warmv1@3x.jpg",
       "idiom" : "iphone",
       "scale" : "3x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A 1.png",
+      "filename" : "Logo_warmv1 1.jpg",
       "idiom" : "ipad",
       "scale" : "1x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A@2x 1.png",
+      "filename" : "Logo_warmv1@2x 1.jpg",
       "idiom" : "ipad",
       "scale" : "2x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A 2.png",
+      "filename" : "Logo_warmv1 2.jpg",
       "idiom" : "ipad",
       "scale" : "1x",
       "subtype" : "mac-catalyst"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A@2x 2.png",
+      "filename" : "Logo_warmv1@2x 2.jpg",
       "idiom" : "ipad",
       "scale" : "2x",
       "subtype" : "mac-catalyst"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A 3.png",
+      "filename" : "Logo_warmv1 3.jpg",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "293942AC-6982-48E0-9BF7-9016B2184F0A@2x 3.png",
+      "filename" : "Logo_warmv1@2x 3.jpg",
       "idiom" : "mac",
       "scale" : "2x"
     }

@@ -8,6 +8,9 @@
 import Foundation
 import MusicKit
 import Observation
+#if os(iOS)
+import AVFoundation  // 🔥 Add this
+#endif
 
 // Simple playlist model for picker
 struct AppleMusicPlaylistItem: Identifiable, Hashable {
@@ -73,6 +76,21 @@ final class AppleMusicManager {
     private let artworkSize = 1024
     #endif
     
+    // MARK: - 🔥 Audio Session Setup
+    
+    #if os(iOS)
+    func setupAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+            print("🔊 Audio session activated for background playback")
+        } catch {
+            print("❌ Failed to set up audio session: \(error)")
+        }
+    }
+    #endif
+    
     // MARK: - Warmup
     
     func warmup() {
@@ -112,6 +130,9 @@ final class AppleMusicManager {
         if isAuthorized {
             await fetchUserPlaylists()
             warmup()
+            #if os(iOS)
+            setupAudioSession()  // 🔥 Setup audio session when authorized
+            #endif
         }
     }
     
@@ -246,6 +267,10 @@ final class AppleMusicManager {
             return
         }
         
+        #if os(iOS)
+        setupAudioSession()  // 🔥 Ensure audio session is active
+        #endif
+        
         do {
             let request = MusicCatalogResourceRequest<Song>(
                 matching: \.id,
@@ -289,6 +314,10 @@ final class AppleMusicManager {
             }
             return
         }
+        
+        #if os(iOS)
+        setupAudioSession()  // 🔥 Ensure audio session is active
+        #endif
         
         do {
             // 1) Try cached library playlists first
@@ -368,6 +397,10 @@ final class AppleMusicManager {
     
     func play() {
         Task {
+            #if os(iOS)
+            setupAudioSession()  // 🔥 Ensure audio session is active
+            #endif
+            
             do {
                 try await ApplicationMusicPlayer.shared.play()
                 print("▶️ Music resumed")

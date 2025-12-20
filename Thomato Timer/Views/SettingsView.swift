@@ -54,15 +54,31 @@ struct SettingsView: View {
                         in: 2...8
                     )
                     
+                    // 🔥 UPDATED: Allow "No Warmup" option
                     HStack {
                         Text("Warmup Duration")
                         Spacer()
                         Picker("", selection: $viewModel.timerState.warmupDuration) {
+                            Text("None").tag(0)  // 🔥 NEW
                             Text("5 min").tag(5)
                             Text("10 min").tag(10)
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 120)
+                        .frame(width: 180)
+                    }
+                    .onChange(of: viewModel.timerState.warmupDuration) { oldValue, newValue in
+                        // Update display if timer not started
+                        if !viewModel.timerState.isRunning && !viewModel.timerState.isPaused {
+                            if newValue == 0 && viewModel.timerState.currentPhase == .warmup {
+                                // Switch to work phase when warmup is disabled
+                                viewModel.timerState.currentPhase = .work
+                                viewModel.timerState.timeRemaining = TimeInterval(viewModel.timerState.workDuration * 60)
+                            } else if newValue > 0 && viewModel.timerState.currentPhase == .work && viewModel.timerState.completedWorkSessions == 0 {
+                                // Switch back to warmup if re-enabled at beginning
+                                viewModel.timerState.currentPhase = .warmup
+                                viewModel.timerState.timeRemaining = TimeInterval(newValue * 60)
+                            }
+                        }
                     }
                     
                 } header: {
@@ -84,6 +100,72 @@ struct SettingsView: View {
                     }
                 } header: {
                     Label("Music Integration", systemImage: "music.note")
+                }
+                
+                // Debug Section
+                Section {
+                    HStack {
+                        Text("Recorded Crashes")
+                        Spacer()
+                        Text("\(CrashLogger.shared.getCrashCount())")
+                            .foregroundColor(CrashLogger.shared.getCrashCount() > 0 ? .red : .secondary)
+                            .bold()
+                    }
+                    
+                    HStack {
+                        Text("Logged Events")
+                        Spacer()
+                        Text("\(CrashLogger.shared.getAppEvents().count)")
+                            .foregroundColor(.blue)
+                            .bold()
+                    }
+                    
+                    Button("Test Logging System") {
+                        CrashLogger.shared.logEvent("🧪 TEST EVENT - Tapped at \(Date())")
+                        CrashLogger.shared.logEvent("🧪 TEST EVENT 2 - This is a second test")
+                        CrashLogger.shared.logEvent("🧪 TEST EVENT 3 - Third test event")
+                        
+                        let count = CrashLogger.shared.getAppEvents().count
+                        print("✅ Test completed. Total events: \(count)")
+                    }
+                    
+                    Button(action: {
+                        let report = CrashLogger.shared.exportLogs()
+                        UIPasteboard.general.string = report
+                        
+                        print("\n📋 DEBUG REPORT COPIED TO CLIPBOARD:")
+                        print("=====================================")
+                        print(report)
+                        print("=====================================\n")
+                    }) {
+                        Label("Copy Report to Clipboard", systemImage: "doc.on.clipboard")
+                    }
+                    
+                    Button(action: {
+                        let report = CrashLogger.shared.exportLogs()
+                        let activityVC = UIActivityViewController(
+                            activityItems: [report],
+                            applicationActivities: nil
+                        )
+                        
+                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                           let window = windowScene.windows.first,
+                           let rootVC = window.rootViewController {
+                            rootVC.present(activityVC, animated: true)
+                        }
+                    }) {
+                        Label("Share Debug Report", systemImage: "square.and.arrow.up")
+                    }
+                    
+                    if CrashLogger.shared.getCrashCount() > 0 || CrashLogger.shared.getAppEvents().count > 0 {
+                        Button(role: .destructive) {
+                            CrashLogger.shared.clearCrashLogs()
+                        } label: {
+                            Label("Clear All Logs", systemImage: "trash")
+                        }
+                    }
+                } header: {
+                    Label("Debug Info", systemImage: "ladybug")
                 }
                 
                 // Statistics Button
@@ -259,7 +341,7 @@ struct SettingsView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.cancelAction) // also responds to Esc
+                .keyboardShortcut(.cancelAction)
             }
             .padding([.top, .horizontal])
             .padding(.bottom, 8)
@@ -303,15 +385,31 @@ struct SettingsView: View {
                                     .frame(width: 60)
                             }
                             
+                            // 🔥 UPDATED: Allow "No Warmup" option
                             HStack {
                                 Text("Warmup Duration:")
                                     .frame(width: 180, alignment: .leading)
                                 Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
+                                    Text("None").tag(0)  // 🔥 NEW
                                     Text("5 min").tag(5)
                                     Text("10 min").tag(10)
                                 }
                                 .pickerStyle(.segmented)
-                                .frame(width: 120)
+                                .frame(width: 180)
+                            }
+                            .onChange(of: viewModel.timerState.warmupDuration) { oldValue, newValue in
+                                // Update display if timer not started
+                                if !viewModel.timerState.isRunning && !viewModel.timerState.isPaused {
+                                    if newValue == 0 && viewModel.timerState.currentPhase == .warmup {
+                                        // Switch to work phase when warmup is disabled
+                                        viewModel.timerState.currentPhase = .work
+                                        viewModel.timerState.timeRemaining = TimeInterval(viewModel.timerState.workDuration * 60)
+                                    } else if newValue > 0 && viewModel.timerState.currentPhase == .work && viewModel.timerState.completedWorkSessions == 0 {
+                                        // Switch back to warmup if re-enabled at beginning
+                                        viewModel.timerState.currentPhase = .warmup
+                                        viewModel.timerState.timeRemaining = TimeInterval(newValue * 60)
+                                    }
+                                }
                             }
                         }
                         .padding(.vertical, 10)
@@ -348,14 +446,13 @@ struct SettingsView: View {
                         .padding(.vertical, 10)
                     }
                     
-                    // 🔹 Window Behavior Section
+                    // Window Behavior Section
                     GroupBox(label: Label("Window Behavior", systemImage: "rectangle.topthird.inset")) {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("Keep timer dropdown open", isOn: $keepWindowOpen)
                                 .toggleStyle(.switch)
                                 .onChange(of: keepWindowOpen) { oldValue, newValue in
                                     if !newValue {
-                                        // 🔥 User just turned it OFF - force close the popover
                                         menuBarManager.checkAndCloseIfNeeded()
                                     }
                                 }
@@ -364,6 +461,43 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    
+                    // Debug Section
+                    GroupBox(label: Label("Debug Info", systemImage: "ladybug")) {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Recorded Crashes:")
+                                    .frame(width: 140, alignment: .leading)
+                                Spacer()
+                                Text("\(CrashLogger.shared.getCrashCount())")
+                                    .foregroundColor(CrashLogger.shared.getCrashCount() > 0 ? .red : .secondary)
+                                    .bold()
+                                    .frame(width: 40)
+                            }
+                            
+                            Button(action: {
+                                let report = CrashLogger.shared.exportLogs()
+                                let pasteboard = NSPasteboard.general
+                                pasteboard.clearContents()
+                                pasteboard.setString(report, forType: .string)
+                                print("📋 Debug report copied to clipboard")
+                                print(report)
+                            }) {
+                                Label("Copy Debug Report", systemImage: "doc.on.clipboard")
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            if CrashLogger.shared.getCrashCount() > 0 {
+                                Button(role: .destructive) {
+                                    CrashLogger.shared.clearCrashLogs()
+                                } label: {
+                                    Label("Clear Debug Logs", systemImage: "trash")
+                                }
+                                .buttonStyle(.bordered)
+                            }
                         }
                         .padding(.vertical, 6)
                     }

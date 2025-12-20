@@ -48,6 +48,7 @@ class TimerViewModel: ObservableObject {
     // MARK: - Timer Controls
     
     func startWarmup() {
+        CrashLogger.shared.logEvent("Starting warmup")
         timerState.startWarmup()
         sessionStartTime = Date()
         accumulatedPausedTime = 0
@@ -55,6 +56,7 @@ class TimerViewModel: ObservableObject {
         playMusicForCurrentPhase()
         
         #if os(iOS)
+        timerState.saveToUserDefaults()
         scheduleTimerCompletionNotification()
         #endif
     }
@@ -62,6 +64,7 @@ class TimerViewModel: ObservableObject {
     func toggleTimer() {
         if timerState.isPaused {
             // Resume
+            CrashLogger.shared.logEvent("Resuming timer - Phase: \(timerState.currentPhase)")
             if let pauseStart = lastPauseTime {
                 accumulatedPausedTime += Date().timeIntervalSince(pauseStart)
                 lastPauseTime = nil
@@ -71,10 +74,12 @@ class TimerViewModel: ObservableObject {
             playMusicForCurrentPhase()
             
             #if os(iOS)
+            timerState.saveToUserDefaults()
             scheduleTimerCompletionNotification()
             #endif
         } else if timerState.isRunning {
             // Pause
+            CrashLogger.shared.logEvent("Pausing timer - Phase: \(timerState.currentPhase), TimeRemaining: \(Int(timerState.timeRemaining))s")
             lastPauseTime = Date()
             timerState.pause()
             stopCountdown()
@@ -82,18 +87,58 @@ class TimerViewModel: ObservableObject {
             
             #if os(iOS)
             UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            timerState.saveToUserDefaults()
             #endif
         } else {
-            // Start (warmup or first session)
+            // Start (not running, not paused)
+            CrashLogger.shared.logEvent("Starting timer - Phase: \(timerState.currentPhase)")
+            
             if timerState.currentPhase == .warmup {
-                startWarmup()
+                if timerState.warmupDuration > 0 {
+                    startWarmup()
+                } else {
+                    // No warmup configured - skip to work
+                    timerState.currentPhase = .work
+                    timerState.timeRemaining = TimeInterval(timerState.workDuration * 60)
+                    timerState.isRunning = true
+                    timerState.isPaused = false
+                    sessionStartTime = Date()
+                    accumulatedPausedTime = 0
+                    startCountdown()
+                    playMusicForCurrentPhase()
+                    #if os(iOS)
+                    timerState.saveToUserDefaults()
+                    scheduleTimerCompletionNotification()
+                    #endif
+                }
+            } else if timerState.currentPhase == .work && timerState.completedWorkSessions == 0 {
+                // 🔥 FIX: Starting first work session (warmup was disabled)
+                // Don't call startNextSession() - just start the timer
+                timerState.isRunning = true
+                timerState.isPaused = false
+                sessionStartTime = Date()
+                accumulatedPausedTime = 0
+                startCountdown()
+                playMusicForCurrentPhase()
+                #if os(iOS)
+                timerState.saveToUserDefaults()
+                scheduleTimerCompletionNotification()
+                #endif
             } else {
+                // Continue from wherever we were (after a break, etc.)
                 startNextSession()
             }
         }
     }
     
     func skipToNext() {
+        CrashLogger.shared.logEvent("Skipping to next phase - Current: \(timerState.currentPhase)")
+        
+        #if os(iOS)
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        CrashLogger.shared.logEvent("🔔 Cancelled notifications on skip")
+        #endif
+        
         stopCountdown()
         playBeep()
         
@@ -102,10 +147,16 @@ class TimerViewModel: ObservableObject {
         
         timerState.startNextPhase()
         
+        CrashLogger.shared.logEvent("🔄 SKIPPED TO - Phase: \(timerState.currentPhase), Sessions: \(timerState.completedWorkSessions)")
+        
         // Reset session tracking for next phase
         sessionStartTime = Date()
         accumulatedPausedTime = 0
         lastPauseTime = nil
+        
+        #if os(iOS)
+        timerState.saveToUserDefaults()
+        #endif
         
         if timerState.currentPhase != .warmup {
             startCountdown()
@@ -113,11 +164,13 @@ class TimerViewModel: ObservableObject {
             
             #if os(iOS)
             scheduleTimerCompletionNotification()
+            CrashLogger.shared.logEvent("🔔 Scheduled new notification after skip")
             #endif
         }
     }
     
     func reset() {
+        CrashLogger.shared.logEvent("Resetting timer")
         // Log elapsed time before resetting (if timer was active)
         if timerState.isRunning || timerState.isPaused {
             logElapsedTime()
@@ -126,8 +179,9 @@ class TimerViewModel: ObservableObject {
         // Stop timer first
         stopCountdown()
         
-        // Reset state
+        // Reset state (will automatically handle warmup=0 case)
         timerState.reset()
+        
         sessionStartTime = nil
         accumulatedPausedTime = 0
         lastPauseTime = nil
@@ -138,6 +192,7 @@ class TimerViewModel: ObservableObject {
         
         #if os(iOS)
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        TimerState.clearSavedState()
         #endif
     }
     
@@ -183,6 +238,7 @@ class TimerViewModel: ObservableObject {
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("❌ Failed to schedule notification: \(error)")
+                CrashLogger.shared.logEvent("Failed to schedule notification: \(error.localizedDescription)")
             } else {
                 print("✅ Notification scheduled for \(self.timerState.timeRemaining)s")
             }
@@ -192,83 +248,181 @@ class TimerViewModel: ObservableObject {
     
     func handleBackgroundTransition() {
         #if os(iOS)
-        guard timerState.isRunning else { return }
+        CrashLogger.shared.logEvent("📱 BACKGROUND TRANSITION CALLED")
+        
+        if backgroundTime != nil {
+            CrashLogger.shared.logEvent("⚠️ Already backgrounded, ignoring duplicate call")
+            return
+        }
+        
+        guard timerState.isRunning else {
+            CrashLogger.shared.logEvent("⏹️ Timer not running, ignoring background")
+            return
+        }
+        
+        CrashLogger.shared.logEvent("💾 SAVING - Phase: \(timerState.currentPhase), TimeRemaining: \(Int(timerState.timeRemaining))s, Session: \(timerState.completedWorkSessions)")
         backgroundTime = Date()
         
-        // Schedule notification for timer completion
+        timerState.saveToUserDefaults(forceSync: true)
+        
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
         scheduleTimerCompletionNotification()
         
         stopCountdown()
-        print("📱 App backgrounded - timer will continue tracking")
+        
+        CrashLogger.shared.logEvent("✅ Background transition complete. backgroundTime set to: \(backgroundTime!)")
+        print("📱 App backgrounded at \(Date()) - timer will continue tracking")
         #endif
     }
     
     func handleForegroundTransition() {
         #if os(iOS)
-        // Cancel pending notifications since app is active
+        CrashLogger.shared.logEvent("📱 FOREGROUND TRANSITION CALLED")
+        
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         
         guard let bgTime = backgroundTime else {
+            CrashLogger.shared.logEvent("⚠️ No backgroundTime recorded - either never backgrounded or state lost")
             return
         }
         
-        // Calculate time spent in background
-        let timeInBackground = Date().timeIntervalSince(bgTime)
         backgroundTime = nil
+        
+        let timeInBackground = Date().timeIntervalSince(bgTime)
+        
+        let oldTimeRemaining = timerState.timeRemaining
+        let wasRunning = timerState.isRunning
+        let wasPaused = timerState.isPaused
+        
+        CrashLogger.shared.logEvent("📊 FOREGROUND STATE - Phase: \(timerState.currentPhase), isRunning: \(wasRunning), isPaused: \(wasPaused)")
+        CrashLogger.shared.logEvent("📊 TIME CALC - Was in BG: \(Int(timeInBackground))s, TimeRemaining BEFORE: \(Int(oldTimeRemaining))s")
         
         print("📱 App foregrounded - was in background for \(Int(timeInBackground))s")
         
-        guard timerState.isRunning else { return }
+        guard timerState.isRunning else {
+            CrashLogger.shared.logEvent("⏹️ Timer not running, not adjusting time")
+            return
+        }
         
-        // Subtract background time from remaining
         var remainingTime = timerState.timeRemaining - timeInBackground
         
-        // Handle multiple phase completions if user was away for a long time
+        CrashLogger.shared.logEvent("🧮 MATH - \(Int(oldTimeRemaining))s - \(Int(timeInBackground))s = \(Int(remainingTime))s")
+        
+        var completionCount = 0
         while remainingTime <= 0 && timerState.isRunning {
-            print("⏰ Timer completed while in background")
+            completionCount += 1
+            print("⏰ Timer completed while in background (completion #\(completionCount))")
+            CrashLogger.shared.logEvent("⏭️ Timer completed in background - Phase: \(timerState.currentPhase)")
             
             let completedPhase = timerState.currentPhase
             
-            // Log elapsed time for the completed phase
             logElapsedTime()
             
-            // Move to next phase
             timerState.startNextPhase()
             
-            // Reset session tracking
             sessionStartTime = Date()
             accumulatedPausedTime = 0
             
-            // Add remaining negative time to next phase
             remainingTime += timerState.timeRemaining
             
-            // Send notification for completed phase
             NotificationManager.shared.sendPhaseCompleteNotification(
                 phase: completedPhase,
                 nextPhase: timerState.currentPhase
             )
         }
         
-        // Update final remaining time
+        if completionCount > 0 {
+            CrashLogger.shared.logEvent("🔄 Processed \(completionCount) phase completions")
+        }
+        
         timerState.timeRemaining = max(0, remainingTime)
+        CrashLogger.shared.logEvent("✅ FINAL - Phase: \(timerState.currentPhase), TimeRemaining: \(Int(timerState.timeRemaining))s")
         
         if timerState.timeRemaining > 0 && timerState.isRunning {
-            // Resume countdown
+            CrashLogger.shared.logEvent("▶️ Resuming countdown with startCountdown()")
             startCountdown()
-            playMusicForCurrentPhase()
+            CrashLogger.shared.logEvent("✅ Countdown resumed")
+        } else {
+            CrashLogger.shared.logEvent("⏹️ NOT resuming - timeRemaining: \(Int(timerState.timeRemaining))s, isRunning: \(timerState.isRunning)")
         }
+        #endif
+    }
+    
+    // MARK: - State Restoration
+    
+    func restoreStateIfNeeded() {
+        #if os(iOS)
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        CrashLogger.shared.logEvent("🔔 Cancelled all old notifications during restore")
+        
+        let timestamp = Date()
+        CrashLogger.shared.logEvent("🔍 RESTORE CHECK at \(timestamp)")
+        
+        guard let saved = TimerState.loadFromUserDefaults() else {
+            CrashLogger.shared.logEvent("❌ NO SAVED STATE - Nothing to restore")
+            return
+        }
+        
+        CrashLogger.shared.logEvent("✅ FOUND SAVED STATE - Phase: \(saved.state.currentPhase), isRunning: \(saved.state.isRunning), isPaused: \(saved.state.isPaused), sessions: \(saved.state.completedWorkSessions), timeRemaining: \(Int(saved.state.timeRemaining))s")
+        
+        guard saved.state.isRunning else {
+            CrashLogger.shared.logEvent("⏹️ RESTORE SKIPPED - Timer was NOT running")
+            TimerState.clearSavedState()
+            return
+        }
+        
+        let timeSinceSave = Date().timeIntervalSince(saved.timestamp)
+        CrashLogger.shared.logEvent("🔄 RESTORING STATE - Phase: \(saved.state.currentPhase), Was saved \(Int(timeSinceSave))s ago, Had \(Int(saved.state.timeRemaining))s remaining")
+        
+        CrashLogger.shared.logEvent("BEFORE RESTORE - Phase: \(timerState.currentPhase), isRunning: \(timerState.isRunning), sessions: \(timerState.completedWorkSessions)")
+        
+        timerState = saved.state
+        
+        CrashLogger.shared.logEvent("AFTER RESTORE - Phase: \(timerState.currentPhase), isRunning: \(timerState.isRunning), sessions: \(timerState.completedWorkSessions)")
+        
+        var newTimeRemaining = saved.state.timeRemaining - timeSinceSave
+        
+        CrashLogger.shared.logEvent("🧮 MATH - Original: \(Int(saved.state.timeRemaining))s - Elapsed: \(Int(timeSinceSave))s = New: \(Int(newTimeRemaining))s")
+        
+        var phaseCompletions = 0
+        while newTimeRemaining <= 0 && timerState.isRunning {
+            phaseCompletions += 1
+            CrashLogger.shared.logEvent("⏭️ Phase completed while app was killed - Phase: \(timerState.currentPhase)")
+            timerState.startNextPhase()
+            newTimeRemaining += timerState.timeRemaining
+        }
+        
+        if phaseCompletions > 0 {
+            CrashLogger.shared.logEvent("🔄 Processed \(phaseCompletions) phase completions during restoration")
+        }
+        
+        timerState.timeRemaining = max(0, newTimeRemaining)
+        CrashLogger.shared.logEvent("✅ RESTORED - New phase: \(timerState.currentPhase), TimeRemaining: \(Int(timerState.timeRemaining))s, Sessions: \(timerState.completedWorkSessions)")
+        
+        sessionStartTime = Date()
+        accumulatedPausedTime = 0
+        startCountdown()
+        playMusicForCurrentPhase()
+        
+        scheduleTimerCompletionNotification()
+        CrashLogger.shared.logEvent("🔔 Scheduled notification for restored phase: \(timerState.currentPhase)")
+        
+        TimerState.clearSavedState()
+        CrashLogger.shared.logEvent("🗑️ Saved state cleared")
+        
+        CrashLogger.shared.logEvent("FINAL STATE - Phase: \(timerState.currentPhase), isRunning: \(timerState.isRunning), timeRemaining: \(Int(timerState.timeRemaining))s, sessions: \(timerState.completedWorkSessions)")
         #endif
     }
     
     // MARK: - Project Switching
     
     func switchProject(to project: Project?) {
-        // Log elapsed time to current project before switching
+        CrashLogger.shared.logEvent("Switching project to: \(project?.displayName ?? "Freestyle")")
         if timerState.isRunning || timerState.isPaused {
             logElapsedTime()
         }
         
-        // Pause timer if running
         if timerState.isRunning {
             lastPauseTime = Date()
             timerState.pause()
@@ -276,11 +430,9 @@ class TimerViewModel: ObservableObject {
             pauseMusic()
         }
         
-        // Switch project
         projectManager.selectProject(project)
         print("🔄 Switched to project: \(project?.displayName ?? "Freestyle")")
         
-        // Reset session tracking for new project
         sessionStartTime = Date()
         accumulatedPausedTime = 0
         if timerState.isPaused {
@@ -291,7 +443,6 @@ class TimerViewModel: ObservableObject {
     // MARK: - Private Timer Logic
     
     private func startCountdown() {
-        // Cancel any existing timer first
         timer?.cancel()
         timer = nil
         
@@ -308,7 +459,6 @@ class TimerViewModel: ObservableObject {
     }
     
     private func tick() {
-        // Guard against timer firing after reset/stop
         guard timerState.isRunning, !timerState.isPaused else {
             stopCountdown()
             return
@@ -320,28 +470,49 @@ class TimerViewModel: ObservableObject {
         }
         
         timerState.timeRemaining -= 1
+        
+        #if os(iOS)
+        if Int(timerState.timeRemaining) % 30 == 0 {
+            timerState.saveToUserDefaults()
+            CrashLogger.shared.logEvent("💾 Auto-save (every 30s) - Phase: \(timerState.currentPhase), Remaining: \(Int(timerState.timeRemaining))s")
+        }
+        #endif
     }
     
     private func handleTimerComplete() {
+        CrashLogger.shared.logEvent("Timer completed - Phase: \(timerState.currentPhase), Sessions: \(timerState.completedWorkSessions)")
+        
+        #if os(iOS)
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        CrashLogger.shared.logEvent("🔔 Cancelled all notifications on phase complete")
+        #endif
+        
         stopCountdown()
         playBeep()
         
         let completedPhase = timerState.currentPhase
         
-        // Log elapsed time
         logElapsedTime()
         
         timerState.startNextPhase()
         
-        // Reset session tracking for next phase
+        CrashLogger.shared.logEvent("🔄 PHASE TRANSITION - From: \(completedPhase) → To: \(timerState.currentPhase), Sessions: \(timerState.completedWorkSessions)")
+        
         sessionStartTime = Date()
         accumulatedPausedTime = 0
         lastPauseTime = nil
+        
+        #if os(iOS)
+        CrashLogger.shared.logEvent("💾 SAVING STATE after phase transition")
+        timerState.saveToUserDefaults(forceSync: true)
+        #endif
         
         NotificationManager.shared.sendPhaseCompleteNotification(
             phase: completedPhase,
             nextPhase: timerState.currentPhase
         )
+        
+        CrashLogger.shared.logEvent("Starting next phase: \(timerState.currentPhase)")
         
         if timerState.currentPhase != .warmup || timerState.isRunning {
             startCountdown()
@@ -349,6 +520,7 @@ class TimerViewModel: ObservableObject {
             
             #if os(iOS)
             scheduleTimerCompletionNotification()
+            CrashLogger.shared.logEvent("🔔 Scheduled new notification for phase: \(timerState.currentPhase)")
             #endif
         }
     }
@@ -363,26 +535,23 @@ class TimerViewModel: ObservableObject {
         playMusicForCurrentPhase()
         
         #if os(iOS)
+        timerState.saveToUserDefaults()
         scheduleTimerCompletionNotification()
         #endif
     }
     
     // MARK: - Session Logging
     
-    /// Logs elapsed time for the current phase to statistics
     private func logElapsedTime() {
         let currentPhase = timerState.currentPhase
         
-        // Don't log warmup
         guard currentPhase != .warmup else { return }
         
-        // Need a valid session start time
         guard let startTime = sessionStartTime else {
             print("⚠️ No session start time, cannot log elapsed time")
             return
         }
         
-        // Account for current pause if paused
         var totalPausedTime = accumulatedPausedTime
         if timerState.isPaused, let pauseStart = lastPauseTime {
             totalPausedTime += Date().timeIntervalSince(pauseStart)
@@ -391,7 +560,6 @@ class TimerViewModel: ObservableObject {
         let elapsedTime = Date().timeIntervalSince(startTime) - totalPausedTime
         let actualDurationMinutes = Int(round(elapsedTime / 60.0))
         
-        // Only log if at least 1 minute
         guard actualDurationMinutes >= 1 else {
             print("⏱️ Less than 1 minute elapsed (\(Int(elapsedTime))s), not logging")
             return
@@ -401,6 +569,7 @@ class TimerViewModel: ObservableObject {
         let projectName = projectManager.currentProject?.displayName ?? "Freestyle"
         
         print("📊 Logging \(actualDurationMinutes) min of \(currentPhase) to \(projectName)")
+        CrashLogger.shared.logEvent("Logged \(actualDurationMinutes)min of \(currentPhase) to \(projectName)")
         
         switch currentPhase {
         case .work:
@@ -446,7 +615,6 @@ class TimerViewModel: ObservableObject {
     }
     
     private func playMusicForCurrentPhase() {
-        // Handle different music services
         switch selectedService {
         case .spotify:
             playSpotifyMusic()
@@ -458,43 +626,93 @@ class TimerViewModel: ObservableObject {
     }
     
     private func playSpotifyMusic() {
-        guard let spotify = spotifyManager, spotify.isAuthenticated else { return }
+        guard let spotify = spotifyManager, spotify.isAuthenticated else {
+            CrashLogger.shared.logEvent("🎵 Spotify not authenticated, skipping music")
+            return
+        }
         
+        let currentPhase = timerState.currentPhase
+        CrashLogger.shared.logEvent("🎵 SPOTIFY START - Phase: \(currentPhase)")
+        
+        #if os(macOS)
+        Task.detached {
+            await self.executeSpotifyPlayback(for: currentPhase, spotify: spotify)
+        }
+        #else
         Task {
-            switch timerState.currentPhase {
-            case .warmup, .shortBreak, .longBreak:
-                if let playlistId = spotify.selectedBreakPlaylistId {
-                    print("🎵 Playing Spotify warmup/break playlist")
-                    await spotify.playPlaylist(playlistId: playlistId)
-                } else {
-                    await spotify.pausePlayback()
-                }
-            case .work:
-                if let playlistId = spotify.selectedWorkPlaylistId {
-                    print("🎵 Playing Spotify work playlist")
-                    await spotify.playPlaylist(playlistId: playlistId)
-                }
+            await executeSpotifyPlayback(for: currentPhase, spotify: spotify)
+        }
+        #endif
+    }
+    
+    private func executeSpotifyPlayback(for phase: TimerPhase, spotify: SpotifyManager) async {
+        switch phase {
+        case .warmup, .shortBreak, .longBreak:
+            if let playlistId = spotify.selectedBreakPlaylistId {
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - Playing BREAK playlist ID: \(playlistId)")
+                print("🎵 Playing BREAK playlist: \(playlistId)")
+                await spotify.playPlaylist(playlistId: playlistId)
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - Break playlist command sent")
+            } else {
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - No break playlist, pausing")
+                await spotify.pausePlayback()
+            }
+        case .work:
+            if let playlistId = spotify.selectedWorkPlaylistId {
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - Playing WORK playlist ID: \(playlistId)")
+                print("🎵 Playing WORK playlist: \(playlistId)")
+                await spotify.playPlaylist(playlistId: playlistId)
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - Work playlist command sent")
+            } else {
+                // 🔥 FIX: No work playlist selected - pause music from break
+                CrashLogger.shared.logEvent("🎵 SPOTIFY - No work playlist, pausing")
+                await spotify.pausePlayback()
             }
         }
     }
     
     private func playAppleMusic() {
-        guard let appleMusic = appleMusicManager, appleMusic.isAuthorized else { return }
+        guard let appleMusic = appleMusicManager, appleMusic.isAuthorized else {
+            CrashLogger.shared.logEvent("🎵 Apple Music not authorized, skipping music")
+            return
+        }
         
+        let currentPhase = timerState.currentPhase
+        CrashLogger.shared.logEvent("🎵 APPLE MUSIC START - Phase: \(currentPhase)")
+        
+        #if os(macOS)
+        Task.detached {
+            await self.executeAppleMusicPlayback(for: currentPhase, appleMusic: appleMusic)
+        }
+        #else
         Task {
-            switch timerState.currentPhase {
-            case .warmup, .shortBreak, .longBreak:
-                if let playlistId = appleMusic.selectedBreakPlaylistId {
-                    print("🎵 Playing Apple Music warmup/break playlist")
-                    await appleMusic.playPlaylist(id: playlistId)
-                } else {
-                    appleMusic.pause()
-                }
-            case .work:
-                if let playlistId = appleMusic.selectedWorkPlaylistId {
-                    print("🎵 Playing Apple Music work playlist")
-                    await appleMusic.playPlaylist(id: playlistId)
-                }
+            await executeAppleMusicPlayback(for: currentPhase, appleMusic: appleMusic)
+        }
+        #endif
+    }
+    
+    private func executeAppleMusicPlayback(for phase: TimerPhase, appleMusic: AppleMusicManager) async {
+        switch phase {
+        case .warmup, .shortBreak, .longBreak:
+            if let playlistId = appleMusic.selectedBreakPlaylistId {
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - Playing BREAK playlist ID: \(playlistId)")
+                print("🎵 Playing BREAK playlist: \(playlistId)")
+                await appleMusic.playPlaylist(id: playlistId)
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - Break playlist command sent")
+            } else {
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - No break playlist, pausing")
+                appleMusic.pause()
+            }
+        case .work:
+            if let playlistId = appleMusic.selectedWorkPlaylistId {
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - Playing WORK playlist ID: \(playlistId)")
+                print("🎵 Playing WORK playlist: \(playlistId)")
+                await appleMusic.playPlaylist(id: playlistId)
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - Work playlist command sent")
+            } else {
+                // 🔥 FIX: No work playlist selected - pause music from break
+                CrashLogger.shared.logEvent("🎵 APPLE MUSIC - No work playlist, pausing")
+                appleMusic.pause()
             }
         }
     }

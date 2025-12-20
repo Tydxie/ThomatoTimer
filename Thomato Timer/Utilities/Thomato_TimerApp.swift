@@ -81,7 +81,9 @@ struct Thomato_TimerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var macState = MacAppState()
     #else
+    @StateObject private var timerViewModel = TimerViewModel()
     @State private var spotifyManager = SpotifyManager()
+    @Environment(\.scenePhase) private var scenePhase
     #endif
     
     init() {
@@ -91,6 +93,9 @@ struct Thomato_TimerApp: App {
             diskCapacity: 0,             // No disk storage
             diskPath: nil
         )
+        
+        // 🔥 Setup crash logging
+        CrashLogger.shared.setup()
         
         // Set notification delegate FIRST, then request authorization
         NotificationManager.shared.setupDelegate()
@@ -125,15 +130,32 @@ struct Thomato_TimerApp: App {
             }
         }
         #else
-        // iOS: unchanged – regular window using ContentView
+        // iOS: regular window using ContentView
         WindowGroup {
             ContentView(spotifyManager: spotifyManager)
+                .environmentObject(timerViewModel)
+                .onAppear {
+                    // 🔥 Restore timer state if app was killed
+                    timerViewModel.restoreStateIfNeeded()
+                }
                 .onOpenURL { url in
                     print("🎵 App received URL (iOS): \(url)")
                     Task {
                         await spotifyManager.handleRedirect(url: url)
                     }
                 }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            switch newPhase {
+            case .background:
+                timerViewModel.handleBackgroundTransition()
+            case .active:
+                timerViewModel.handleForegroundTransition()
+            case .inactive:
+                break
+            @unknown default:
+                break
+            }
         }
         #endif
     }

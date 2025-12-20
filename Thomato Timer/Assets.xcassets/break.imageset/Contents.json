@@ -1,37 +1,37 @@
 {
   "images" : [
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238.png",
+      "filename" : "Logo_breakv1.jpg",
       "idiom" : "iphone",
       "scale" : "1x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238@2x.png",
+      "filename" : "Logo_breakv1@2x.jpg",
       "idiom" : "iphone",
       "scale" : "2x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238@3x.png",
+      "filename" : "Logo_breakv1@3x.jpg",
       "idiom" : "iphone",
       "scale" : "3x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238 1.png",
+      "filename" : "Logo_breakv1 1.jpg",
       "idiom" : "ipad",
       "scale" : "1x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238@2x 1.png",
+      "filename" : "Logo_breakv1@2x 1.jpg",
       "idiom" : "ipad",
       "scale" : "2x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238 2.png",
+      "filename" : "Logo_breakv1 2.jpg",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "88A7ABA8-57CE-427C-90E2-D09B1A6DB238@2x 2.png",
+      "filename" : "Logo_breakv1@2x 2.jpg",
       "idiom" : "mac",
       "scale" : "2x"
     }

@@ -7,14 +7,14 @@
 
 import Foundation
 
-enum TimerPhase: String {
+enum TimerPhase: String, Codable {
     case warmup
     case work
     case shortBreak
     case longBreak
 }
 
-struct TimerState {
+struct TimerState: Codable {
     // Current state
     var currentPhase: TimerPhase = .warmup
     var timeRemaining: TimeInterval = 5 * 60  // Start with 5 minutes (300 seconds)
@@ -27,11 +27,11 @@ struct TimerState {
     var shortBreakDuration: Int = 10
     var longBreakDuration: Int = 20
     
-    // 🔥 When warmup duration changes, update timeRemaining if in warmup and not started
+    // 🔥 UPDATED: Warmup can now be 0 (no warmup)
     var warmupDuration: Int = 5 {
         didSet {
             // Only update if we're in warmup phase and timer hasn't started
-            if currentPhase == .warmup && !isRunning && !isPaused {
+            if currentPhase == .warmup && !isRunning && !isPaused && warmupDuration > 0 {
                 timeRemaining = TimeInterval(warmupDuration * 60)
             }
         }
@@ -100,8 +100,47 @@ struct TimerState {
     mutating func reset() {
         isRunning = false
         isPaused = false
-        timeRemaining = TimeInterval(warmupDuration * 60)  // Reset to warmup duration
-        currentPhase = .warmup
         completedWorkSessions = 0
+        
+        // 🔥 NEW: If warmup is 0, reset to work phase instead
+        if warmupDuration == 0 {
+            currentPhase = .work
+            timeRemaining = TimeInterval(workDuration * 60)
+        } else {
+            currentPhase = .warmup
+            timeRemaining = TimeInterval(warmupDuration * 60)
+        }
+    }
+    
+    // MARK: - 🔥 Persistence (Optimized)
+    
+    func saveToUserDefaults(forceSync: Bool = false) {
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(self) {
+            UserDefaults.standard.set(encoded, forKey: "savedTimerState")
+            UserDefaults.standard.set(Date(), forKey: "savedStateTimestamp")
+            
+            // 🔥 Only force sync when explicitly needed (critical moments)
+            if forceSync {
+                UserDefaults.standard.synchronize()
+            }
+            
+            print("💾 Timer state saved\(forceSync ? " (forced sync)" : "")")
+        }
+    }
+    
+    static func loadFromUserDefaults() -> (state: TimerState, timestamp: Date)? {
+        guard let data = UserDefaults.standard.data(forKey: "savedTimerState"),
+              let timestamp = UserDefaults.standard.object(forKey: "savedStateTimestamp") as? Date,
+              let state = try? JSONDecoder().decode(TimerState.self, from: data) else {
+            return nil
+        }
+        return (state, timestamp)
+    }
+    
+    static func clearSavedState() {
+        UserDefaults.standard.removeObject(forKey: "savedTimerState")
+        UserDefaults.standard.removeObject(forKey: "savedStateTimestamp")
+        print("🗑️ Saved timer state cleared")
     }
 }
