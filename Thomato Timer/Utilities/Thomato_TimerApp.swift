@@ -161,10 +161,4 @@ struct Thomato_TimerApp: App {
     }
 }
 
-// MARK: - Notification Names
 
-extension Notification.Name {
-    static let toggleTimer = Notification.Name("toggleTimer")
-    static let resetTimer = Notification.Name("resetTimer")
-    static let skipTimer = Notification.Name("skipTimer")
-}

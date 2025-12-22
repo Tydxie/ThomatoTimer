@@ -528,6 +528,14 @@ struct ContentView: View {
         viewModel.appleMusicManager = appleMusicManager
         viewModel.selectedService = selectedService
         
+        #if os(iOS)
+        // 🔥 Setup widget intent observers for Live Activity buttons
+        viewModel.setupWidgetIntentObservers()
+        
+        // 🔥 Restore state if app was killed
+        viewModel.restoreStateIfNeeded()
+        #endif
+        
         if ProjectManager.shared.projects.isEmpty &&
             StatisticsManager.shared.sessions.isEmpty {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
