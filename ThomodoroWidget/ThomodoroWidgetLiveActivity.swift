@@ -2,13 +2,12 @@
 //  ThomodoroWidgetLiveActivity.swift
 //  ThomodoroWidget
 //
-//  Created by Thomas Xie on 2025/12/21.
+//  Created by Thomas Xie on 2025/12/22.
 //
 
 import ActivityKit
 import WidgetKit
 import SwiftUI
-import AppIntents
 
 struct ThomodoroWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -31,13 +30,11 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 
                 DynamicIslandExpandedRegion(.trailing) {
                     if context.state.isRunning && !context.state.isPaused {
-                        // 🔥 FIX: Use lastUpdateTime
                         Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                             .font(.title2)
                             .bold()
                             .monospacedDigit()
                     } else {
-                        // Static time when paused
                         Text(timeString(context.state.timeRemaining))
                             .font(.title2)
                             .bold()
@@ -49,20 +46,18 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack(spacing: 20) {
                         // Skip button
-                        Button(intent: SkipTimerIntent()) {
+                        Link(destination: URL(string: "thomato-timer://skip")!) {
                             Image(systemName: "forward.fill")
                                 .font(.title3)
+                                .foregroundColor(.white)
                         }
-                        .buttonStyle(.plain)
-                        .tint(.white)
                         
                         // Pause/Resume button
-                        Button(intent: ToggleTimerIntent()) {
+                        Link(destination: URL(string: "thomato-timer://toggle")!) {
                             Image(systemName: context.state.isPaused ? "play.fill" : "pause.fill")
                                 .font(.title2)
+                                .foregroundColor(.white)
                         }
-                        .buttonStyle(.plain)
-                        .tint(.white)
                     }
                     .padding(.top, 8)
                 }
@@ -71,7 +66,6 @@ struct ThomodoroWidgetLiveActivity: Widget {
                     .foregroundColor(phaseColor(context.state.phase))
             } compactTrailing: {
                 if context.state.isRunning && !context.state.isPaused {
-                    // 🔥 FIX: Use lastUpdateTime
                     Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                         .monospacedDigit()
                         .font(.caption2)
@@ -144,7 +138,6 @@ struct LockScreenLiveActivityView: View {
             
             // Center: Timer
             if context.state.isRunning && !context.state.isPaused {
-                // 🔥 FIX: Calculate end time from lastUpdateTime
                 Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
@@ -160,20 +153,18 @@ struct LockScreenLiveActivityView: View {
             // Right: Control buttons
             HStack(spacing: 12) {
                 // Skip button
-                Button(intent: SkipTimerIntent()) {
+                Link(destination: URL(string: "thomato-timer://skip")!) {
                     Image(systemName: "forward.fill")
                         .font(.title3)
+                        .foregroundColor(.white)
                 }
-                .buttonStyle(.plain)
-                .tint(.white)
                 
                 // Pause/Resume button
-                Button(intent: ToggleTimerIntent()) {
+                Link(destination: URL(string: "thomato-timer://toggle")!) {
                     Image(systemName: context.state.isPaused ? "play.fill" : "pause.fill")
                         .font(.title3)
+                        .foregroundColor(.white)
                 }
-                .buttonStyle(.plain)
-                .tint(.white)
             }
         }
         .padding(.horizontal, 16)

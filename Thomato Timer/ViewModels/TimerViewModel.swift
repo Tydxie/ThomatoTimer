@@ -216,6 +216,12 @@ class TimerViewModel: ObservableObject {
         #if os(iOS)
         guard timerState.isRunning else { return }
         
+        // 🔥 FIX: Don't schedule if time remaining is invalid
+        guard timerState.timeRemaining > 0 else {
+            print("⚠️ Cannot schedule notification - timeRemaining is \(timerState.timeRemaining)")
+            return
+        }
+        
         // Cancel any existing notifications
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         
@@ -299,22 +305,24 @@ class TimerViewModel: ObservableObject {
         // 🔥 First restore from Live Activity if it exists
         restoreFromLiveActivityOrShared()
         
-        guard let bgTime = backgroundTime else {
-            CrashLogger.shared.logEvent("⚠️ No backgroundTime recorded - either never backgrounded or state lost")
-            return
-        }
-        
-        backgroundTime = nil
-        
-        let timeInBackground = Date().timeIntervalSince(bgTime)
-        CrashLogger.shared.logEvent("📊 Was in background for: \(Int(timeInBackground))s")
-        
+        // 🔥 FIX: Always validate state, even without backgroundTime
         if timerState.timeRemaining > 0 && timerState.isRunning && !timerState.isPaused {
             CrashLogger.shared.logEvent("▶️ Resuming countdown")
             startCountdown()
             playMusicForCurrentPhase()
             scheduleTimerCompletionNotification()
         }
+        
+        // Now handle backgroundTime if it exists
+        guard let bgTime = backgroundTime else {
+            CrashLogger.shared.logEvent("⚠️ No backgroundTime recorded - either never backgrounded or state lost")
+            return  // This is OK now - state was already restored above
+        }
+        
+        backgroundTime = nil
+        
+        let timeInBackground = Date().timeIntervalSince(bgTime)
+        CrashLogger.shared.logEvent("📊 Was in background for: \(Int(timeInBackground))s")
         #endif
     }
     
@@ -688,6 +696,16 @@ class TimerViewModel: ObservableObject {
             timerState.isPaused = state.isPaused
             timerState.completedWorkSessions = state.completedSessions
             
+            // 🔥 FIX: If time ran out, reset to not running
+            if timerState.timeRemaining <= 0 {
+                timerState.isRunning = false
+                timerState.isPaused = false
+                print("⚠️ Timer completed while app was closed - resetting")
+                // Keep existing Live Activity reference but don't start countdown
+                currentActivity = activity
+                return
+            }
+            
             sessionStartTime = Date()
             accumulatedPausedTime = 0
             
@@ -720,6 +738,14 @@ class TimerViewModel: ObservableObject {
             timerState.shortBreakDuration = sharedState.shortBreakDuration
             timerState.longBreakDuration = sharedState.longBreakDuration
             timerState.sessionsUntilLongBreak = sharedState.sessionsUntilLongBreak
+            
+            // 🔥 FIX: If time ran out, reset to not running
+            if timerState.timeRemaining <= 0 {
+                timerState.isRunning = false
+                timerState.isPaused = false
+                print("⚠️ Timer completed while app was closed - resetting")
+                return
+            }
             
             sessionStartTime = Date()
             accumulatedPausedTime = 0

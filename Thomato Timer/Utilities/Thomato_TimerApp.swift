@@ -139,10 +139,7 @@ struct Thomato_TimerApp: App {
                     timerViewModel.restoreStateIfNeeded()
                 }
                 .onOpenURL { url in
-                    print("🎵 App received URL (iOS): \(url)")
-                    Task {
-                        await spotifyManager.handleRedirect(url: url)
-                    }
+                    handleDeepLink(url: url, timerViewModel: timerViewModel, spotifyManager: spotifyManager)
                 }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -159,6 +156,42 @@ struct Thomato_TimerApp: App {
         }
         #endif
     }
+    
+    // MARK: - Deep Link Handler
+    
+    #if os(iOS)
+    private func handleDeepLink(url: URL, timerViewModel: TimerViewModel, spotifyManager: SpotifyManager) {
+        print("🔗 Received URL: \(url)")
+        
+        // Check if it's a Spotify callback
+        if url.scheme == "thomato-timer" && url.host == "callback" {
+            print("🎵 Spotify callback detected")
+            Task {
+                await spotifyManager.handleRedirect(url: url)
+            }
+            return
+        }
+        
+        // Handle Live Activity button URLs
+        guard url.scheme == "thomato-timer" else { return }
+        
+        switch url.host {
+        case "toggle":
+            print("🔗 Deep link: Toggle timer")
+            timerViewModel.toggleTimer()
+            
+        case "skip":
+            print("🔗 Deep link: Skip phase")
+            if timerViewModel.timerState.isRunning {
+                timerViewModel.skipToNext()
+            }
+            
+        case "test":
+            print("🔗 Deep link: Test button worked! ✅")
+            
+        default:
+            print("🔗 Unknown deep link: \(url.host ?? "none")")
+        }
+    }
+    #endif
 }
-
-

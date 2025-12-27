@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import ActivityKit
+#endif
 
 struct ContentView: View {
     @StateObject private var viewModel = TimerViewModel()
@@ -75,10 +78,10 @@ struct ContentView: View {
                         // Image - show album artwork if playing, otherwise phase image
                         artworkImageView
                             .frame(width: 250, height: 250)
-                            .cornerRadius(8)  // Spotify guideline: 8px for large devices
+                            .cornerRadius(8)
                             .shadow(radius: 3)
                         
-                        // Spotify attribution (required by design guidelines)
+                        // Spotify attribution
                         if selectedService == .spotify && isMusicPlaying {
                             spotifyAttribution
                         }
@@ -89,8 +92,6 @@ struct ContentView: View {
                     
                     // BOTTOM HALF - Timer UI
                     VStack(spacing: 16) {
-                        
-                        
                         // Phase Title
                         Text(viewModel.phaseTitle)
                             .font(.title2)
@@ -148,6 +149,7 @@ struct ContentView: View {
                                 .tint(.thTeal)
                         }
                         .font(.title3)
+                        
                         
                         // Checkmarks
                         Text(viewModel.timerState.checkmarks)
@@ -265,7 +267,6 @@ struct ContentView: View {
         .onAppear {
             setupOnAppear()
             
-            // 🔹 NEW: pass managers into MenuBarManager so it can build the popover
             menuBarManager.setup(
                 viewModel: viewModel,
                 spotifyManager: spotifyManager,
@@ -303,36 +304,30 @@ struct ContentView: View {
         HStack(spacing: 0) {
             Spacer()
             
-            // LEFT SIDE - PROJECT SWITCHER + IMAGE
             VStack(spacing: 1) {
                 ProjectSwitcherView(viewModel: viewModel)
                     .frame(width: 200)
                     .padding(.top, 30)
                 
-                // Images - show album artwork if playing, otherwise phase images
                 ZStack {
                     if let artworkURL = currentArtworkURL, isMusicPlaying {
-                        // Album artwork from music service
                         VStack(spacing: 8) {
                             AsyncImage(url: artworkURL) { image in
                                 image
                                     .resizable()
                                     .scaledToFit()
                             } placeholder: {
-                                // Show phase image while loading
                                 phaseImageMac
                             }
                             .frame(width: 220, height: 220)
-                            .cornerRadius(8)  // Spotify guideline: 8px for large devices
+                            .cornerRadius(8)
                             
-                            // Spotify attribution (required by design guidelines)
                             if selectedService == .spotify {
                                 spotifyAttribution
                             }
                         }
                         .offset(y: 30)
                     } else {
-                        // Default phase images
                         phaseImageMac
                     }
                 }
@@ -342,8 +337,6 @@ struct ContentView: View {
             }
             .frame(width: 300)
             
-            
-            // RIGHT TIMER PANEL
             VStack(spacing: 20) {
                 Text(viewModel.phaseTitle)
                     .font(.title)
@@ -419,12 +412,9 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    // MARK: - macOS Phase Images
-    
     @ViewBuilder
     private var phaseImageMac: some View {
         ZStack {
-            // Warmup image
             Image("warmup")
                 .resizable()
                 .scaledToFit()
@@ -432,7 +422,6 @@ struct ContentView: View {
                 .offset(x: 0, y: -10)
                 .opacity(viewModel.timerState.currentPhase == .warmup ? 1 : 0)
             
-            // Work/Tomato image
             Image("tomato")
                 .resizable()
                 .scaledToFit()
@@ -440,7 +429,6 @@ struct ContentView: View {
                 .offset(x: 0, y: -15)
                 .opacity(viewModel.timerState.currentPhase == .work ? 1 : 0)
             
-            // Break image
             Image("break")
                 .resizable()
                 .scaledToFit()
@@ -451,14 +439,11 @@ struct ContentView: View {
     }
     #endif
     
-    // MARK: - Spotify Attribution (required by design guidelines)
-    
     private var spotifyAttribution: some View {
         Button {
             openInSpotify()
         } label: {
             HStack(spacing: 6) {
-                // Spotify icon (green circle with sound waves)
                 Image(systemName: "music.note")
                     .foregroundColor(.green)
                     .font(.caption)
@@ -494,26 +479,21 @@ struct ContentView: View {
         #endif
     }
     
-    // MARK: - Shared Artwork View (iOS)
-    
     @ViewBuilder
     private var artworkImageView: some View {
         if let artworkURL = currentArtworkURL, isMusicPlaying {
-            // Album artwork from music service
             AsyncImage(url: artworkURL) { image in
                 image
                     .resizable()
                     .scaledToFill()
                     .clipped()
             } placeholder: {
-                // Show phase image while loading
                 Image(currentImage)
                     .resizable()
                     .scaledToFill()
                     .clipped()
             }
         } else {
-            // Default phase image
             Image(currentImage)
                 .resizable()
                 .scaledToFill()
@@ -521,18 +501,13 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Shared
-    
     private func setupOnAppear() {
         viewModel.spotifyManager = spotifyManager
         viewModel.appleMusicManager = appleMusicManager
         viewModel.selectedService = selectedService
         
         #if os(iOS)
-        // 🔥 Setup widget intent observers for Live Activity buttons
         viewModel.setupWidgetIntentObservers()
-        
-        // 🔥 Restore state if app was killed
         viewModel.restoreStateIfNeeded()
         #endif
         
@@ -555,8 +530,6 @@ struct ContentView: View {
         }
     }
 }
-
-// MARK: - macOS Toolbar Progress View
 
 #if os(macOS)
 struct ProjectProgressToolbar: View {
@@ -596,8 +569,6 @@ struct ProjectProgressToolbar: View {
     }
 }
 #endif
-
-// MARK: - Preview
 
 #Preview {
     ContentView(spotifyManager: SpotifyManager())

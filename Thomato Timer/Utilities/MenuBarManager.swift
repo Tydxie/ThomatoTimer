@@ -50,8 +50,11 @@ class MenuBarManager: ObservableObject {
             button.image = NSImage(systemSymbolName: "timer",
                                    accessibilityDescription: "Thomodoro")
             button.title = ""
-            button.action = #selector(togglePopover(_:))
             button.target = self
+            button.action = #selector(togglePopover(_:))
+            
+            // 🔥 FIX: Ensure clicks are registered in full screen
+            button.sendAction(on: [.leftMouseUp])
             
             // 🔥 Auto-open dropdown with retry logic
             self.attemptAutoOpen(retryCount: 0)
@@ -131,6 +134,8 @@ class MenuBarManager: ObservableObject {
     // MARK: - Popover Handling
     
     @objc private func togglePopover(_ sender: AnyObject?) {
+        print("🖱️ Toggle popover called")
+        
         if let popover = popover, popover.isShown {
             popover.close()
             self.popover = nil
@@ -196,12 +201,18 @@ class MenuBarManager: ObservableObject {
             preferredEdge: .minY
         )
         
-        // 🔥 KEY FIX: Force the popover window to become key and activate
+        // 🔥 FIX for full screen mode: Force window level and activation
         DispatchQueue.main.async {
+            // Set window level to floating so it appears above full screen apps
+            popover.contentViewController?.view.window?.level = .floating
+            
+            // Activate the app
             NSApp.activate(ignoringOtherApps: true)
+            
+            // Make the popover window key
             popover.contentViewController?.view.window?.makeKey()
             
-            // Optional: Make the view first responder for keyboard events
+            // Make the view first responder
             popover.contentViewController?.view.window?.makeFirstResponder(
                 popover.contentViewController?.view
             )
