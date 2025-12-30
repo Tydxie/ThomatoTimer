@@ -11,7 +11,7 @@ import ActivityKit
 #endif
 
 struct ContentView: View {
-    @StateObject private var viewModel = TimerViewModel()
+    @ObservedObject var viewModel: TimerViewModel  // 🔥 FIX: Accept from parent instead of creating
     @State private var showingSettings = false
     @State private var showingProjectList = false
     @State private var selectedService: MusicService = .none
@@ -571,5 +571,8 @@ struct ProjectProgressToolbar: View {
 #endif
 
 #Preview {
-    ContentView(spotifyManager: SpotifyManager())
+    ContentView(
+        viewModel: TimerViewModel(),
+        spotifyManager: SpotifyManager()
+    )
 }

@@ -84,7 +84,6 @@ struct Thomato_TimerApp: App {
     @StateObject private var timerViewModel = TimerViewModel()
     @State private var spotifyManager = SpotifyManager()
     @Environment(\.scenePhase) private var scenePhase
-    #endif
     
     init() {
         // Configure URLCache for memory-only (no disk storage for compliance)
@@ -100,7 +99,10 @@ struct Thomato_TimerApp: App {
         // Set notification delegate FIRST, then request authorization
         NotificationManager.shared.setupDelegate()
         NotificationManager.shared.requestAuthorization()
+        
+        print("🏗️ App init() called - creating timerViewModel")
     }
+    #endif
     
     var body: some Scene {
         #if os(macOS)
@@ -132,8 +134,10 @@ struct Thomato_TimerApp: App {
         #else
         // iOS: regular window using ContentView
         WindowGroup {
-            ContentView(spotifyManager: spotifyManager)
-                .environmentObject(timerViewModel)
+            ContentView(
+                viewModel: timerViewModel,
+                spotifyManager: spotifyManager
+            )
                 .onAppear {
                     // 🔥 Restore timer state if app was killed
                     timerViewModel.restoreStateIfNeeded()
@@ -179,6 +183,28 @@ struct Thomato_TimerApp: App {
         case "toggle":
             print("🔗 Deep link: Toggle timer")
             timerViewModel.toggleTimer()
+            
+        case "pause":
+            print("🔗 Deep link: PAUSE timer")
+            print("   Current state BEFORE: isRunning=\(timerViewModel.timerState.isRunning), isPaused=\(timerViewModel.timerState.isPaused)")
+            // Only pause if currently running
+            if timerViewModel.timerState.isRunning && !timerViewModel.timerState.isPaused {
+                print("   ✅ Calling toggleTimer() to pause")
+                timerViewModel.toggleTimer()
+            } else {
+                print("   ⚠️ Already paused or not running - skipping")
+            }
+            
+        case "resume":
+            print("🔗 Deep link: RESUME timer")
+            print("   Current state BEFORE: isRunning=\(timerViewModel.timerState.isRunning), isPaused=\(timerViewModel.timerState.isPaused)")
+            // Only resume if currently paused
+            if timerViewModel.timerState.isPaused {
+                print("   ✅ Calling toggleTimer() to resume")
+                timerViewModel.toggleTimer()
+            } else {
+                print("   ⚠️ Already running or not paused - skipping")
+            }
             
         case "skip":
             print("🔗 Deep link: Skip phase")

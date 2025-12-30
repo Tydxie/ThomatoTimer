@@ -881,6 +881,46 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             print("❌ Error pausing: \(error)")
         }
     }
+    
+    /// Resume current playback (continues from where it was paused)
+    func resumePlayback() async {
+        await ensureValidToken()
+        guard let accessToken = self.accessToken else { return }
+        
+        var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play")!)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
+                    print("✅ Resumed playback")
+                    await MainActor.run {
+                        isPlaying = true
+                        startPlaybackPolling()
+                    }
+                } else if httpResponse.statusCode == 401 {
+                    print("⚠️ Token expired, retrying...")
+                    await refreshAccessToken()
+                    
+                    if let newToken = self.accessToken {
+                        request.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+                        let (_, retryResponse) = try await URLSession.shared.data(for: request)
+                        if let retryHttp = retryResponse as? HTTPURLResponse,
+                           retryHttp.statusCode == 204 || retryHttp.statusCode == 200 {
+                            await MainActor.run {
+                                isPlaying = true
+                                startPlaybackPolling()
+                            }
+                        }
+                    }
+                }
+            }
+        } catch {
+            print("❌ Error resuming: \(error)")
+        }
+    }
 }
 
 // MARK: - Response Models

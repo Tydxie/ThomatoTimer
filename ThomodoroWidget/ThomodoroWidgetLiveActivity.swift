@@ -29,17 +29,19 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 }
                 
                 DynamicIslandExpandedRegion(.trailing) {
+                    // 🔥 FIX: Only use timerInterval when actively running (not paused)
                     if context.state.isRunning && !context.state.isPaused {
                         Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                             .font(.title2)
                             .bold()
                             .monospacedDigit()
                     } else {
+                        // Show static time when paused or stopped
                         Text(timeString(context.state.timeRemaining))
                             .font(.title2)
                             .bold()
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(context.state.isPaused ? .secondary : .primary)
                     }
                 }
                 
@@ -52,11 +54,19 @@ struct ThomodoroWidgetLiveActivity: Widget {
                                 .foregroundColor(.white)
                         }
                         
-                        // Pause/Resume button
-                        Link(destination: URL(string: "thomato-timer://toggle")!) {
-                            Image(systemName: context.state.isPaused ? "play.fill" : "pause.fill")
-                                .font(.title2)
-                                .foregroundColor(.white)
+                        // Pause/Resume button - 🔥 FIX: Use explicit pause/resume URLs
+                        if context.state.isPaused {
+                            Link(destination: URL(string: "thomato-timer://resume")!) {
+                                Image(systemName: "play.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                            }
+                        } else {
+                            Link(destination: URL(string: "thomato-timer://pause")!) {
+                                Image(systemName: "pause.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                            }
                         }
                     }
                     .padding(.top, 8)
@@ -65,15 +75,17 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 Image(systemName: phaseIcon(context.state.phase))
                     .foregroundColor(phaseColor(context.state.phase))
             } compactTrailing: {
+                // 🔥 FIX: Only use timerInterval when actively running (not paused)
                 if context.state.isRunning && !context.state.isPaused {
                     Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                         .monospacedDigit()
                         .font(.caption2)
                 } else {
+                    // Show static time when paused or stopped
                     Text(timeString(context.state.timeRemaining))
                         .monospacedDigit()
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(context.state.isPaused ? .secondary : .primary)
                 }
             } minimal: {
                 Image(systemName: phaseIcon(context.state.phase))
@@ -86,17 +98,17 @@ struct ThomodoroWidgetLiveActivity: Widget {
     
     private func phaseIcon(_ phase: TimerPhase) -> String {
         switch phase {
-        case .warmup: return "figure.run"
-        case .work: return "laptopcomputer"
+        case .warmup: return "flame.fill"
+        case .work: return "timer"
         case .shortBreak, .longBreak: return "cup.and.saucer.fill"
         }
     }
     
     private func phaseColor(_ phase: TimerPhase) -> Color {
         switch phase {
-        case .warmup: return .orange
-        case .work: return .red
-        case .shortBreak, .longBreak: return .green
+        case .warmup: return .orange  // Keep warmup orange (transitional)
+        case .work: return Color(red: 0.85, green: 0.65, blue: 0.13)  // thomodoroGold
+        case .shortBreak, .longBreak: return Color(red: 0.0, green: 0.7, blue: 0.6)  // thTeal
         }
     }
     
@@ -136,16 +148,17 @@ struct LockScreenLiveActivityView: View {
             
             Spacer()
             
-            // Center: Timer
+            // Center: Timer - 🔥 FIX: Only use timerInterval when actively running
             if context.state.isRunning && !context.state.isPaused {
                 Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
             } else {
+                // Show static time when paused or stopped
                 Text(timeString)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(context.state.isPaused ? .secondary : .primary)
             }
             
             Spacer()
@@ -159,11 +172,19 @@ struct LockScreenLiveActivityView: View {
                         .foregroundColor(.white)
                 }
                 
-                // Pause/Resume button
-                Link(destination: URL(string: "thomato-timer://toggle")!) {
-                    Image(systemName: context.state.isPaused ? "play.fill" : "pause.fill")
-                        .font(.title3)
-                        .foregroundColor(.white)
+                // Pause/Resume button - 🔥 FIX: Use explicit pause/resume URLs
+                if context.state.isPaused {
+                    Link(destination: URL(string: "thomato-timer://resume")!) {
+                        Image(systemName: "play.fill")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
+                } else {
+                    Link(destination: URL(string: "thomato-timer://pause")!) {
+                        Image(systemName: "pause.fill")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
                 }
             }
         }
@@ -176,17 +197,17 @@ struct LockScreenLiveActivityView: View {
     
     private var phaseIcon: String {
         switch context.state.phase {
-        case .warmup: return "figure.run"
-        case .work: return "laptopcomputer"
+        case .warmup: return "flame.fill"
+        case .work: return "timer"
         case .shortBreak, .longBreak: return "cup.and.saucer.fill"
         }
     }
     
     private var phaseColor: Color {
         switch context.state.phase {
-        case .warmup: return .orange
-        case .work: return .red
-        case .shortBreak, .longBreak: return .green
+        case .warmup: return .orange  // Keep warmup orange (transitional)
+        case .work: return Color(red: 0.85, green: 0.65, blue: 0.13)  // thomodoroGold
+        case .shortBreak, .longBreak: return Color(red: 0.0, green: 0.7, blue: 0.6)  // thTeal
         }
     }
     

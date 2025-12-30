@@ -6,56 +6,95 @@
 //
 
 import Foundation
+import SwiftUI
+import Combine
 
-enum TimerPhase: String, Codable {
+enum TimerPhase: String, Codable, CaseIterable {
     case warmup
     case work
     case shortBreak
     case longBreak
 }
 
-struct TimerState: Codable {
+class TimerState: ObservableObject, Codable {
     // Current state
-    var currentPhase: TimerPhase = .warmup
-    var timeRemaining: TimeInterval = 5 * 60  // Start with 5 minutes (300 seconds)
-    var isRunning: Bool = false
-    var isPaused: Bool = false
-    var completedWorkSessions: Int = 0
-    
-    // User settings (customizable durations in minutes)
-    var workDuration: Int = 60
-    var shortBreakDuration: Int = 10
-    var longBreakDuration: Int = 20
-    
-    // 🔥 UPDATED: Warmup can now be 0 (no warmup)
-    var warmupDuration: Int = 5 {
+    @Published var currentPhase: TimerPhase = .warmup
+    @Published var timeRemaining: TimeInterval = 5 * 60  // Start with 5 minutes (300 seconds)
+    var isRunning: Bool = false {
         didSet {
-            // Only update if we're in warmup phase and timer hasn't started
-            if currentPhase == .warmup && !isRunning && !isPaused && warmupDuration > 0 {
-                timeRemaining = TimeInterval(warmupDuration * 60)
-            }
+            print("🔄 TimerState.isRunning changed: \(oldValue) → \(isRunning)")
+            print("   Call stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n   "))")
+            objectWillChange.send()  // Manually trigger update
         }
     }
+    var isPaused: Bool = false {
+        didSet {
+            print("🔄 TimerState.isPaused changed: \(oldValue) → \(isPaused)")
+            print("   Call stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n   "))")
+            objectWillChange.send()  // Manually trigger update
+        }
+    }
+    @Published var completedWorkSessions: Int = 0
     
-    // User setting: how many work sessions before a long break
-    var sessionsUntilLongBreak: Int = 4
+    // 🔥 User settings (persistent via @AppStorage)
+    @AppStorage("workDuration") var workDuration: Int = 60
+    @AppStorage("shortBreakDuration") var shortBreakDuration: Int = 10
+    @AppStorage("longBreakDuration") var longBreakDuration: Int = 20
+    @AppStorage("warmupDuration") var warmupDuration: Int = 5
+    @AppStorage("sessionsUntilLongBreak") var sessionsUntilLongBreak: Int = 4
     
     // Computed property for checkmarks
     var checkmarks: String {
-        // Avoid division by zero if user somehow sets 0
         guard sessionsUntilLongBreak > 0 else { return "" }
         let count = completedWorkSessions % sessionsUntilLongBreak
         return String(repeating: "✓", count: count)
     }
     
-    mutating func startWarmup() {
+    // MARK: - Codable Support
+    
+    enum CodingKeys: String, CodingKey {
+        case currentPhase
+        case timeRemaining
+        case isRunning
+        case isPaused
+        case completedWorkSessions
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        currentPhase = try container.decode(TimerPhase.self, forKey: .currentPhase)
+        timeRemaining = try container.decode(TimeInterval.self, forKey: .timeRemaining)
+        isRunning = try container.decode(Bool.self, forKey: .isRunning)
+        isPaused = try container.decode(Bool.self, forKey: .isPaused)
+        completedWorkSessions = try container.decode(Int.self, forKey: .completedWorkSessions)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(currentPhase, forKey: .currentPhase)
+        try container.encode(timeRemaining, forKey: .timeRemaining)
+        try container.encode(isRunning, forKey: .isRunning)
+        try container.encode(isPaused, forKey: .isPaused)
+        try container.encode(completedWorkSessions, forKey: .completedWorkSessions)
+    }
+    
+    init() {
+        // @AppStorage properties are automatically loaded
+    }
+    
+    // MARK: - Timer Control
+    
+    func startWarmup() {
+        print("🎬 TimerState.startWarmup() called")
         currentPhase = .warmup
         timeRemaining = TimeInterval(warmupDuration * 60)
         isRunning = true
         isPaused = false
     }
     
-    mutating func startNextPhase() {
+    func startNextPhase() {
+        print("⏭️ TimerState.startNextPhase() called - current: \(currentPhase)")
+        
         if currentPhase == .warmup {
             // After warmup, start first work session
             currentPhase = .work
@@ -87,22 +126,27 @@ struct TimerState: Codable {
         isPaused = false
     }
     
-    mutating func pause() {
+    func pause() {
+        print("⏸️ TimerState.pause() called")
+        print("   Call stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n   "))")
         isPaused = true
         isRunning = false
     }
     
-    mutating func resume() {
+    func resume() {
+        print("▶️ TimerState.resume() called")
+        print("   Call stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n   "))")
         isPaused = false
         isRunning = true
     }
     
-    mutating func reset() {
+    func reset() {
+        print("🔄 TimerState.reset() called")
         isRunning = false
         isPaused = false
         completedWorkSessions = 0
         
-        // 🔥 NEW: If warmup is 0, reset to work phase instead
+        // 🔥 If warmup is 0, reset to work phase instead
         if warmupDuration == 0 {
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
@@ -112,7 +156,7 @@ struct TimerState: Codable {
         }
     }
     
-    // MARK: - 🔥 Persistence (Optimized)
+    // MARK: - 🔥 Persistence
     
     func saveToUserDefaults(forceSync: Bool = false) {
         let encoder = JSONEncoder()
@@ -120,7 +164,6 @@ struct TimerState: Codable {
             UserDefaults.standard.set(encoded, forKey: "savedTimerState")
             UserDefaults.standard.set(Date(), forKey: "savedStateTimestamp")
             
-            // 🔥 Only force sync when explicitly needed (critical moments)
             if forceSync {
                 UserDefaults.standard.synchronize()
             }

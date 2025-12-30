@@ -50,11 +50,8 @@ class MenuBarManager: ObservableObject {
             button.image = NSImage(systemSymbolName: "timer",
                                    accessibilityDescription: "Thomodoro")
             button.title = ""
-            button.target = self
             button.action = #selector(togglePopover(_:))
-            
-            // 🔥 FIX: Ensure clicks are registered in full screen
-            button.sendAction(on: [.leftMouseUp])
+            button.target = self
             
             // 🔥 Auto-open dropdown with retry logic
             self.attemptAutoOpen(retryCount: 0)
@@ -69,7 +66,7 @@ class MenuBarManager: ObservableObject {
     // 🔥 Robust auto-open with validation and retry
     private func attemptAutoOpen(retryCount: Int) {
         let maxRetries = 5
-        let baseDelay: TimeInterval = 1.5  // Increased from 0.8
+        let baseDelay: TimeInterval = 1.5
         let retryDelay = baseDelay + (TimeInterval(retryCount) * 0.4)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + retryDelay) { [weak self] in
@@ -201,21 +198,20 @@ class MenuBarManager: ObservableObject {
             preferredEdge: .minY
         )
         
-        // 🔥 FIX for full screen mode: Force window level and activation
+        // 🔥 FIX for full screen mode: Set window properties AFTER showing
         DispatchQueue.main.async {
-            // Set window level to floating so it appears above full screen apps
-            popover.contentViewController?.view.window?.level = .floating
-            
-            // Activate the app
-            NSApp.activate(ignoringOtherApps: true)
-            
-            // Make the popover window key
-            popover.contentViewController?.view.window?.makeKey()
-            
-            // Make the view first responder
-            popover.contentViewController?.view.window?.makeFirstResponder(
-                popover.contentViewController?.view
-            )
+            if let popoverWindow = popover.contentViewController?.view.window {
+                // Set window level to appear above full screen
+                popoverWindow.level = .statusBar
+                
+                // 🔥 KEY FIX: Allow window to appear in full screen spaces
+                popoverWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+                
+                // Activate and make key
+                NSApp.activate(ignoringOtherApps: true)
+                popoverWindow.makeKey()
+                popoverWindow.orderFrontRegardless()
+            }
         }
     }
     
