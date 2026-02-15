@@ -35,7 +35,7 @@ class StatisticsManager {
     var firstUseDate: Date?
     
     private init() {
-        // Listen for iCloud changes from other devices
+       
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(iCloudDidUpdate),
@@ -43,7 +43,6 @@ class StatisticsManager {
             object: iCloud
         )
         
-        // Trigger initial sync
         iCloud.synchronize()
         loadData()
     }
@@ -60,7 +59,7 @@ class StatisticsManager {
             return
         }
         
-        print("☁️ Statistics iCloud sync update received, reason: \(changeReason)")
+        print("Statistics iCloud sync update received, reason: \(changeReason)")
         
         DispatchQueue.main.async {
             self.loadData()
@@ -70,34 +69,34 @@ class StatisticsManager {
     // MARK: - Data Persistence
     
     private func loadData() {
-        // Load sessions from iCloud
+        
         if let data = iCloud.data(forKey: sessionsKey),
            let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data) {
             sessions = decoded
-            print("📊 Loaded \(sessions.count) sessions from iCloud")
+            print("Loaded \(sessions.count) sessions from iCloud")
         } else {
-            // Fallback: try loading from UserDefaults (migration from old version)
+            
             if let data = UserDefaults.standard.data(forKey: sessionsKey),
                let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data) {
                 sessions = decoded
-                print("📊 Migrated \(sessions.count) sessions from UserDefaults to iCloud")
+                print("Migrated \(sessions.count) sessions from UserDefaults to iCloud")
                 saveData()
                 UserDefaults.standard.removeObject(forKey: sessionsKey)
             }
         }
         
-        // Load first use date from iCloud
+        
         if let timestamp = iCloud.object(forKey: firstUseKey) as? Double {
             firstUseDate = Date(timeIntervalSince1970: timestamp)
         } else {
-            // Fallback: try loading from UserDefaults
+           
             if let date = UserDefaults.standard.object(forKey: firstUseKey) as? Date {
                 firstUseDate = date
                 iCloud.set(date.timeIntervalSince1970, forKey: firstUseKey)
                 iCloud.synchronize()
                 UserDefaults.standard.removeObject(forKey: firstUseKey)
             } else {
-                // First time using app
+                
                 firstUseDate = Date()
                 iCloud.set(firstUseDate!.timeIntervalSince1970, forKey: firstUseKey)
                 iCloud.synchronize()
@@ -109,7 +108,7 @@ class StatisticsManager {
         if let encoded = try? JSONEncoder().encode(sessions) {
             iCloud.set(encoded, forKey: sessionsKey)
             iCloud.synchronize()
-            print("☁️ Saved \(sessions.count) sessions to iCloud")
+            print("Saved \(sessions.count) sessions to iCloud")
         }
     }
     
@@ -124,13 +123,13 @@ class StatisticsManager {
         )
         sessions.append(session)
         saveData()
-        print("📊 Logged session: \(type.rawValue) - \(durationMinutes) min - Project: \(projectId?.uuidString ?? "None")")
+        print("Logged session: \(type.rawValue) - \(durationMinutes) min - Project: \(projectId?.uuidString ?? "None")")
     }
     
     func deleteSessionsForProject(projectId: UUID) {
         sessions.removeAll { $0.projectId == projectId }
         saveData()
-        print("📊 Deleted all sessions for project: \(projectId)")
+        print("Deleted all sessions for project: \(projectId)")
     }
     
     // MARK: - Statistics Calculations

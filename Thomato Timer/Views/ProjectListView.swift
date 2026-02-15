@@ -92,7 +92,6 @@ struct ProjectListView: View {
     #if os(macOS)
     private var macOSLayout: some View {
         VStack(spacing: 0) {
-            // Top bar (title + New + Done)
             HStack {
                 Text("My Projects")
                     .font(.title2)
@@ -113,14 +112,13 @@ struct ProjectListView: View {
                     dismiss()
                 }
                 .buttonStyle(.bordered)
-                .keyboardShortcut(.cancelAction) // Esc to close
+                .keyboardShortcut(.cancelAction)
             }
             .padding([.top, .horizontal])
             .padding(.bottom, 8)
             
             Divider()
             
-            // Project List
             if projectManager.projects.isEmpty {
                 emptyStateView
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -168,7 +166,6 @@ struct ProjectListView: View {
     }
     #endif
 
-    
     // MARK: - Shared Empty State
     
     private var emptyStateView: some View {
@@ -200,17 +197,14 @@ struct ProjectCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Project name
             Text(project.displayName)
                 .font(.title2)
                 .bold()
             
-            // Progress
             let totalHours = Int(statsManager.totalHoursForProject(project.id))
             let current = Milestone.currentMilestone(for: totalHours)
             
             HStack(spacing: 8) {
-                // Current level badge
                 HStack(spacing: 4) {
                     Text(current.emoji)
                     Text(current.title)
@@ -229,7 +223,6 @@ struct ProjectCard: View {
                     .foregroundColor(.secondary)
             }
             
-            // Progress to next milestone
             if let next = Milestone.nextMilestone(for: totalHours) {
                 let progress = Double(totalHours) / Double(next.hours)
                 
@@ -260,13 +253,12 @@ struct ProjectCard: View {
                     .frame(height: 8)
                 }
             } else {
-                Text("🎉 All milestones completed!")
+                Text("All milestones completed!")
                     .font(.caption)
                     .foregroundColor(.blue)
                     .padding(.vertical, 4)
             }
             
-            // Action buttons
             HStack(spacing: 12) {
                 Button("Rename") {
                     onRename()

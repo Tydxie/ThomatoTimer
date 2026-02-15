@@ -17,7 +17,6 @@ class CrashLogger {
     private let maxLogs = 10
     
     func setup() {
-        // Log app launch
         logEvent("App launched - Version: \(appVersion())")
         
         NSSetUncaughtExceptionHandler { exception in
@@ -35,7 +34,7 @@ class CrashLogger {
             ==================================
             """
             
-            print("💥 CRASH DETECTED:")
+            print("CRASH DETECTED:")
             print(crashLog)
             
             CrashLogger.shared.saveCrashLog(crashLog)
@@ -44,22 +43,19 @@ class CrashLogger {
     
     func logEvent(_ message: String) {
         let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
-        print("📝 [\(timestamp)] \(message)")
+        print("[\(timestamp)] \(message)")
         
         var events = UserDefaults.standard.stringArray(forKey: "app_events") ?? []
         events.append("[\(timestamp)] \(message)")
         
-        // Keep last 50 events
         if events.count > 50 {
             events = Array(events.suffix(50))
         }
         
         UserDefaults.standard.set(events, forKey: "app_events")
-        // 🔥 REMOVED: synchronize() - let iOS handle periodic sync automatically
         
-        // Verification still works without sync
         let verification = UserDefaults.standard.stringArray(forKey: "app_events")?.count ?? 0
-        print("✅ Event logged. Total events now: \(verification)")
+        print("Event logged. Total events now: \(verification)")
     }
     
     private func saveCrashLog(_ log: String) {

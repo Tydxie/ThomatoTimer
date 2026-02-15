@@ -8,7 +8,7 @@
 import SwiftUI
 
 extension Color {
-    // Base colors
+    
     static let thBlack  = Color.black
     static let thWhite  = Color.white
     

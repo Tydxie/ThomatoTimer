@@ -27,13 +27,10 @@ struct StatisticsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // TODAY Section
                     TodayStatsCard()
                     
-                    // ALL TIME Section
                     AllTimeStatsCard()
                     
-                    // Member since
                     if let firstUse = statsManager.firstUseDate {
                         Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
                             .font(.footnote)
@@ -61,7 +58,6 @@ struct StatisticsView: View {
     #if os(macOS)
     private var macOSLayout: some View {
         VStack(spacing: 0) {
-            // Top bar (title + Done)
             HStack {
                 Text("Statistics")
                     .font(.title2)
@@ -73,7 +69,7 @@ struct StatisticsView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.cancelAction) // Esc closes the sheet as well
+                .keyboardShortcut(.cancelAction)
             }
             .padding([.top, .horizontal])
             .padding(.bottom, 8)
@@ -82,13 +78,10 @@ struct StatisticsView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // TODAY Section
                     TodayStatsCard()
                     
-                    // ALL TIME Section
                     AllTimeStatsCard()
                     
-                    // Member since
                     if let firstUse = statsManager.firstUseDate {
                         Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
                             .font(.footnote)
@@ -115,7 +108,6 @@ struct TodayStatsCard: View {
     var body: some View {
         GroupBox {
             VStack(spacing: 16) {
-                // Header
                 HStack {
                     Label("Today", systemImage: "calendar")
                         .font(.headline)
@@ -129,7 +121,6 @@ struct TodayStatsCard: View {
                 
                 Divider()
                 
-                // Project breakdown
                 let breakdown = statsManager.projectBreakdown(for: .today)
                 let unassignedMinutes = statsManager.unassignedMinutes(for: .today)
                 
@@ -145,7 +136,6 @@ struct TodayStatsCard: View {
                     .padding(.vertical, 20)
                 } else {
                     VStack(spacing: 12) {
-                        // Sort projects by time
                         ForEach(Array(breakdown.keys.sorted(by: { breakdown[$0]! > breakdown[$1]! })), id: \.self) { projectId in
                             if let project = projectManager.projects.first(where: { $0.id == projectId }),
                                let minutes = breakdown[projectId] {
@@ -156,7 +146,6 @@ struct TodayStatsCard: View {
                             }
                         }
                         
-                        // Unassigned sessions
                         if unassignedMinutes > 0 {
                             TodayProjectRow(
                                 projectName: "Freestyle",
@@ -200,7 +189,6 @@ struct AllTimeStatsCard: View {
     var body: some View {
         GroupBox {
             VStack(spacing: 16) {
-                // Header
                 HStack {
                     Label("All Time", systemImage: "chart.bar.fill")
                         .font(.headline)
@@ -214,7 +202,6 @@ struct AllTimeStatsCard: View {
                 
                 Divider()
                 
-                // Project breakdown with progress
                 let breakdown = statsManager.projectBreakdown(for: .allTime)
                 let unassignedMinutes = statsManager.unassignedMinutes(for: .allTime)
                 
@@ -230,7 +217,6 @@ struct AllTimeStatsCard: View {
                     .padding(.vertical, 20)
                 } else {
                     VStack(spacing: 20) {
-                        // Sort projects by time
                         ForEach(Array(breakdown.keys.sorted(by: { breakdown[$0]! > breakdown[$1]! })), id: \.self) { projectId in
                             if let project = projectManager.projects.first(where: { $0.id == projectId }),
                                let minutes = breakdown[projectId] {
@@ -241,7 +227,6 @@ struct AllTimeStatsCard: View {
                             }
                         }
                         
-                        // Unassigned sessions (no progress bar)
                         if unassignedMinutes > 0 {
                             AllTimeUnassignedCard(minutes: unassignedMinutes)
                         }
@@ -262,14 +247,12 @@ struct AllTimeProjectCard: View {
         let current = Milestone.currentMilestone(for: totalHours)
         
         VStack(alignment: .leading, spacing: 10) {
-            // Project name and current level
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(project.displayName)
                         .font(.body)
                         .bold()
                     
-                    // Current level badge
                     HStack(spacing: 4) {
                         Text(current.emoji)
                             .font(.caption)
@@ -293,19 +276,16 @@ struct AllTimeProjectCard: View {
                 Spacer()
             }
             
-            // Progress to next milestone
             if let next = Milestone.nextMilestone(for: totalHours) {
                 let progress = Double(totalHours) / Double(next.hours)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
-                            // Background
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.secondary.opacity(0.2))
                                 .frame(height: 8)
                             
-                            // Progress
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(
                                     LinearGradient(
@@ -319,7 +299,6 @@ struct AllTimeProjectCard: View {
                     }
                     .frame(height: 8)
                     
-                    // Next milestone info
                     HStack {
                         Text("Next: \(next.emoji) \(next.title)")
                             .font(.caption)
@@ -331,9 +310,8 @@ struct AllTimeProjectCard: View {
                     }
                 }
             } else {
-                // Completed all milestones
                 HStack {
-                    Text("🎉 All milestones completed!")
+                    Text("All milestones completed!")
                         .font(.caption)
                         .foregroundColor(.blue)
                     Spacer()

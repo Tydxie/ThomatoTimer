@@ -3,6 +3,7 @@
 //  Thomato Timer
 //
 //  Created by Thomas Xie on 2025/11/28.
+//  Refactored: 2025/12/30
 //
 
 import Foundation
@@ -16,34 +17,44 @@ enum TimerPhase: String, Codable, CaseIterable {
     case longBreak
 }
 
+enum TimerRunState: String, Codable {
+    case idle
+    case running
+    case paused
+}
+
 class TimerState: ObservableObject, Codable {
-    // Current state
     @Published var currentPhase: TimerPhase = .warmup
-    @Published var timeRemaining: TimeInterval = 5 * 60  // Start with 5 minutes (300 seconds)
-    var isRunning: Bool = false {
+    @Published var timeRemaining: TimeInterval = 5 * 60
+    
+    @Published var runState: TimerRunState = .idle {
         didSet {
-            print("🔄 TimerState.isRunning changed: \(oldValue) → \(isRunning)")
+            print("TimerState.runState changed: \(oldValue) -> \(runState)")
             print("   Call stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n   "))")
-            objectWillChange.send()  // Manually trigger update
+            objectWillChange.send()
         }
     }
-    var isPaused: Bool = false {
-        didSet {
-            print("🔄 TimerState.isPaused changed: \(oldValue) → \(isPaused)")
-            print("   Call stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n   "))")
-            objectWillChange.send()  // Manually trigger update
-        }
-    }
+    
     @Published var completedWorkSessions: Int = 0
     
-    // 🔥 User settings (persistent via @AppStorage)
+    var isRunning: Bool {
+        runState == .running
+    }
+    
+    var isPaused: Bool {
+        runState == .paused
+    }
+    
+    var isIdle: Bool {
+        runState == .idle
+    }
+    
     @AppStorage("workDuration") var workDuration: Int = 60
     @AppStorage("shortBreakDuration") var shortBreakDuration: Int = 10
     @AppStorage("longBreakDuration") var longBreakDuration: Int = 20
     @AppStorage("warmupDuration") var warmupDuration: Int = 5
     @AppStorage("sessionsUntilLongBreak") var sessionsUntilLongBreak: Int = 4
     
-    // Computed property for checkmarks
     var checkmarks: String {
         guard sessionsUntilLongBreak > 0 else { return "" }
         let count = completedWorkSessions % sessionsUntilLongBreak
@@ -55,59 +66,71 @@ class TimerState: ObservableObject, Codable {
     enum CodingKeys: String, CodingKey {
         case currentPhase
         case timeRemaining
+        case runState
+        case completedWorkSessions
         case isRunning
         case isPaused
-        case completedWorkSessions
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         currentPhase = try container.decode(TimerPhase.self, forKey: .currentPhase)
         timeRemaining = try container.decode(TimeInterval.self, forKey: .timeRemaining)
-        isRunning = try container.decode(Bool.self, forKey: .isRunning)
-        isPaused = try container.decode(Bool.self, forKey: .isPaused)
         completedWorkSessions = try container.decode(Int.self, forKey: .completedWorkSessions)
+        
+        if let state = try? container.decode(TimerRunState.self, forKey: .runState) {
+            runState = state
+            print("Loaded new runState format: \(state)")
+        } else {
+            let wasRunning = try container.decodeIfPresent(Bool.self, forKey: .isRunning) ?? false
+            let wasPaused = try container.decodeIfPresent(Bool.self, forKey: .isPaused) ?? false
+            
+            if wasPaused {
+                runState = .paused
+            } else if wasRunning {
+                runState = .running
+            } else {
+                runState = .idle
+            }
+            print("Migrated legacy format: isRunning=\(wasRunning), isPaused=\(wasPaused) -> runState=\(runState)")
+        }
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(currentPhase, forKey: .currentPhase)
         try container.encode(timeRemaining, forKey: .timeRemaining)
+        try container.encode(runState, forKey: .runState)
+        try container.encode(completedWorkSessions, forKey: .completedWorkSessions)
         try container.encode(isRunning, forKey: .isRunning)
         try container.encode(isPaused, forKey: .isPaused)
-        try container.encode(completedWorkSessions, forKey: .completedWorkSessions)
     }
     
     init() {
-        // @AppStorage properties are automatically loaded
     }
     
     // MARK: - Timer Control
     
     func startWarmup() {
-        print("🎬 TimerState.startWarmup() called")
+        print("TimerState.startWarmup() called")
         currentPhase = .warmup
         timeRemaining = TimeInterval(warmupDuration * 60)
-        isRunning = true
-        isPaused = false
+        runState = .running
     }
     
     func startNextPhase() {
-        print("⏭️ TimerState.startNextPhase() called - current: \(currentPhase)")
+        print("TimerState.startNextPhase() called - current: \(currentPhase)")
         
         if currentPhase == .warmup {
-            // After warmup, start first work session
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
-            isRunning = true
-            isPaused = false
+            runState = .running
             return
         }
         
         if currentPhase == .work {
             completedWorkSessions += 1
             
-            // Decide break type based on sessionsUntilLongBreak
             if sessionsUntilLongBreak > 0,
                completedWorkSessions % sessionsUntilLongBreak == 0 {
                 currentPhase = .longBreak
@@ -117,36 +140,30 @@ class TimerState: ObservableObject, Codable {
                 timeRemaining = TimeInterval(shortBreakDuration * 60)
             }
         } else {
-            // After any break, go back to work
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
         }
         
-        isRunning = true
-        isPaused = false
+        runState = .running
     }
     
     func pause() {
-        print("⏸️ TimerState.pause() called")
+        print("TimerState.pause() called")
         print("   Call stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n   "))")
-        isPaused = true
-        isRunning = false
+        runState = .paused
     }
     
     func resume() {
-        print("▶️ TimerState.resume() called")
+        print("TimerState.resume() called")
         print("   Call stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n   "))")
-        isPaused = false
-        isRunning = true
+        runState = .running
     }
     
     func reset() {
-        print("🔄 TimerState.reset() called")
-        isRunning = false
-        isPaused = false
+        print("TimerState.reset() called")
+        runState = .idle
         completedWorkSessions = 0
         
-        // 🔥 If warmup is 0, reset to work phase instead
         if warmupDuration == 0 {
             currentPhase = .work
             timeRemaining = TimeInterval(workDuration * 60)
@@ -156,7 +173,7 @@ class TimerState: ObservableObject, Codable {
         }
     }
     
-    // MARK: - 🔥 Persistence
+    // MARK: - Persistence
     
     func saveToUserDefaults(forceSync: Bool = false) {
         let encoder = JSONEncoder()
@@ -168,7 +185,7 @@ class TimerState: ObservableObject, Codable {
                 UserDefaults.standard.synchronize()
             }
             
-            print("💾 Timer state saved\(forceSync ? " (forced sync)" : "")")
+            print("Timer state saved\(forceSync ? " (forced sync)" : "") - runState: \(runState)")
         }
     }
     
@@ -178,12 +195,13 @@ class TimerState: ObservableObject, Codable {
               let state = try? JSONDecoder().decode(TimerState.self, from: data) else {
             return nil
         }
+        print("Loaded timer state - runState: \(state.runState)")
         return (state, timestamp)
     }
     
     static func clearSavedState() {
         UserDefaults.standard.removeObject(forKey: "savedTimerState")
         UserDefaults.standard.removeObject(forKey: "savedStateTimestamp")
-        print("🗑️ Saved timer state cleared")
+        print("Saved timer state cleared")
     }
 }

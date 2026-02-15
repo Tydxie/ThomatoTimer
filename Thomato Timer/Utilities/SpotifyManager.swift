@@ -11,7 +11,7 @@ import Observation
 import CryptoKit
 
 @Observable
-final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
+final class SpotifyManager: NSObject {
     // MARK: - Published State
     var isAuthenticated = false
     var accessToken: String?
@@ -36,11 +36,11 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     var isPlaying = false
     var currentTrackName: String?
     var currentArtistName: String?
-    var currentTrackSpotifyURL: String?  // For attribution link back to Spotify
-    private var currentTrackId: String?   // Track changes detection
+    var currentTrackSpotifyURL: String?
+    private var currentTrackId: String?
     
     // MARK: - Device Preference
-    private var preferredDeviceId: String?  // Remember user's device choice
+    private var preferredDeviceId: String?
     
     // MARK: - Playback Polling
     private var pollingTimer: Timer?
@@ -48,19 +48,16 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     
     // MARK: - Authentication Flow
     
-    /// Step 1: Generate PKCE values and open Spotify authorization page
     @MainActor
     func authenticate() {
-        // Generate PKCE values
+        
         let verifier = generateCodeVerifier()
         let challenge = generateCodeChallenge(from: verifier)
         let stateValue = generateState()
         
-        // Store for later use
         self.codeVerifier = verifier
         self.state = stateValue
         
-        // Build authorization URL
         var components = URLComponents(string: SpotifyConfig.authURL)!
         components.queryItems = [
             URLQueryItem(name: "client_id", value: SpotifyConfig.clientID),
@@ -77,7 +74,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Open in browser
         #if os(macOS)
         NSWorkspace.shared.open(url)
         #else
@@ -85,7 +81,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
         #endif
     }
     
-    /// Step 2: Handle redirect callback from Spotify
     func handleRedirect(url: URL) async {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             await MainActor.run {
@@ -94,10 +89,8 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Extract query parameters
         let queryItems = components.queryItems ?? []
         
-        // Check for error
         if let error = queryItems.first(where: { $0.name == "error" })?.value {
             await MainActor.run {
                 errorMessage = "Authorization failed: \(error)"
@@ -105,7 +98,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Extract code and state
         guard let code = queryItems.first(where: { $0.name == "code" })?.value,
               let returnedState = queryItems.first(where: { $0.name == "state" })?.value else {
             await MainActor.run {
@@ -114,7 +106,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Verify state matches (CSRF protection)
         guard returnedState == self.state else {
             await MainActor.run {
                 errorMessage = "State mismatch - possible CSRF attack"
@@ -122,7 +113,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Exchange code for token
         guard let verifier = self.codeVerifier else {
             await MainActor.run {
                 errorMessage = "Code verifier not found"
@@ -133,13 +123,11 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
         await exchangeCodeForToken(code: code, codeVerifier: verifier)
     }
     
-    /// Step 3: Exchange authorization code for access token
     private func exchangeCodeForToken(code: String, codeVerifier: String) async {
         var request = URLRequest(url: URL(string: SpotifyConfig.tokenURL)!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         
-        // Build request body
         let bodyParams = [
             "grant_type": "authorization_code",
             "code": code,
@@ -178,22 +166,18 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             
             let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
             
-            // Update state on main actor
             await MainActor.run {
                 self.accessToken = tokenResponse.access_token
                 self.refreshToken = tokenResponse.refresh_token
                 self.tokenExpirationDate = Date().addingTimeInterval(TimeInterval(tokenResponse.expires_in))
                 self.isAuthenticated = true
                 self.errorMessage = nil
-                
-                // Clear PKCE values
                 self.codeVerifier = nil
                 self.state = nil
                 
-                print("✅ Spotify authenticated successfully")
+                print("Spotify authenticated successfully")
             }
             
-            // Auto-fetch playlists
             await fetchPlaylists()
             
         } catch {
@@ -203,17 +187,16 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
         }
     }
     
-    /// Refresh the access token using refresh token
     func refreshAccessToken() async {
         guard let refreshToken = self.refreshToken else {
-            print("❌ No refresh token available")
+            print("No refresh token available")
             await MainActor.run {
                 errorMessage = "No refresh token available"
             }
             return
         }
         
-        print("🔄 Refreshing Spotify access token...")
+        print("Refreshing Spotify access token...")
         
         var request = URLRequest(url: URL(string: SpotifyConfig.tokenURL)!)
         request.httpMethod = "POST"
@@ -235,7 +218,7 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("❌ Token refresh failed")
+                print("Token refresh failed")
                 await MainActor.run {
                     errorMessage = "Token refresh failed"
                 }
@@ -248,16 +231,15 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                 self.accessToken = tokenResponse.access_token
                 self.tokenExpirationDate = Date().addingTimeInterval(TimeInterval(tokenResponse.expires_in))
                 
-                // Update refresh token if provided
                 if let newRefreshToken = tokenResponse.refresh_token {
                     self.refreshToken = newRefreshToken
                 }
                 
-                print("✅ Token refreshed successfully")
+                print("Token refreshed successfully")
             }
             
         } catch {
-            print("❌ Token refresh error: \(error)")
+            print("Token refresh error: \(error)")
             await MainActor.run {
                 errorMessage = "Refresh error: \(error.localizedDescription)"
             }
@@ -266,21 +248,18 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     
     // MARK: - PKCE Helper Functions
     
-    /// Generate cryptographically random code verifier (43-128 chars)
     private func generateCodeVerifier() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return Data(bytes).base64URLEncodedString()
     }
     
-    /// Generate code challenge from verifier using SHA256
     private func generateCodeChallenge(from verifier: String) -> String {
         let data = Data(verifier.utf8)
         let hashed = SHA256.hash(data: data)
         return Data(hashed).base64URLEncodedString()
     }
     
-    /// Generate random state for CSRF protection
     private func generateState() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
@@ -290,20 +269,19 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     // MARK: - Testing
     func testConfiguration() -> String {
         """
-        ✅ Spotify Configuration (Works as of 11/25/2025)
+        Spotify Configuration (Works as of 11/25/2025)
         
         Client ID: \(SpotifyConfig.clientID.prefix(15))...
         Redirect URI: \(SpotifyConfig.redirectURI)
         Auth Method: PKCE (S256)
         Scopes: \(SpotifyConfig.scopeString)
         
-        Status: \(isAuthenticated ? "✅ Authenticated" : "⏳ Not authenticated")
+        Status: \(isAuthenticated ? "Authenticated" : "Not authenticated")
         """
     }
     
     // MARK: - Playlist Management
     
-    /// Fetch user's playlists from Spotify
     func fetchPlaylists() async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else {
@@ -326,12 +304,10 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                 return
             }
             
-            // 🔥 Handle 401 (token expired)
             if httpResponse.statusCode == 401 {
-                print("⚠️ 401 Unauthorized - refreshing token and retrying...")
+                print("401 Unauthorized - refreshing token and retrying...")
                 await refreshAccessToken()
                 
-                // Retry with new token
                 if let newToken = self.accessToken {
                     request.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
                     let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
@@ -372,7 +348,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     
     // MARK: - Playlist Metadata
     
-    /// Get total number of tracks in a playlist
     private func getPlaylistTrackCount(playlistId: String) async -> Int? {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return nil }
@@ -399,14 +374,13 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let decoded = try JSONDecoder().decode(PlaylistTrackCountResponse.self, from: data)
             return decoded.tracks.total
         } catch {
-            print("❌ Error getting playlist track count: \(error)")
+            print("Error getting playlist track count: \(error)")
             return nil
         }
     }
     
     // MARK: - Track Search
     
-    /// Search for tracks
     func searchTracks(query: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else {
@@ -437,12 +411,10 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                 return
             }
             
-            // 🔥 Handle 401 (token expired)
             if httpResponse.statusCode == 401 {
-                print("⚠️ 401 Unauthorized - refreshing token and retrying...")
+                print("401 Unauthorized - refreshing token and retrying...")
                 await refreshAccessToken()
                 
-                // Retry with new token
                 if let newToken = self.accessToken {
                     request.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
                     let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
@@ -483,7 +455,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     
     // MARK: - Device Management
     
-    /// Get available devices
     func getAvailableDevices() async -> [SpotifyDevice] {
         guard let accessToken = self.accessToken else { return [] }
         
@@ -508,8 +479,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
     
     // MARK: - Token Management
 
-    /// Ensure we have a valid token, refresh if needed
-    /// 🔥 OPTIMIZED: Minimal logging - only logs when refreshing
     private func ensureValidToken() async {
         guard let expirationDate = tokenExpirationDate else {
             if refreshToken != nil {
@@ -518,26 +487,22 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             return
         }
         
-        // Only refresh if < 5 minutes remaining
         if expirationDate.timeIntervalSinceNow < 300 {
             await refreshAccessToken()
         }
     }
     
-    // MARK: - Playback Polling (for real-time artwork updates)
+    // MARK: - Playback Polling
     
-    /// Start polling for current playback state - call when music starts
     @MainActor
     func startPlaybackPolling() {
         guard !isPollingEnabled else { return }
         isPollingEnabled = true
         
-        // Fetch immediately
         Task {
             await self.fetchCurrentPlayback()
         }
         
-        // Use selector-based Timer to avoid @Sendable capture issues
         pollingTimer = Timer.scheduledTimer(
             timeInterval: 3.0,
             target: self,
@@ -546,17 +511,15 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             repeats: true
         )
         
-        print("🎵 Started Spotify playback polling")
+        print("Started Spotify playback polling")
     }
     
-    /// Timer callback
     @objc private func handlePollingTimer(_ timer: Timer) {
         Task {
             await self.fetchCurrentPlayback()
         }
     }
     
-    /// Stop polling - call when music stops or service changes
     @MainActor
     func stopPlaybackPolling() {
         isPollingEnabled = false
@@ -568,12 +531,11 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
         currentArtistName = nil
         currentTrackSpotifyURL = nil
         isPlaying = false
-        print("🎵 Stopped Spotify playback polling")
+        print("Stopped Spotify playback polling")
     }
     
     // MARK: - Current Playback State
     
-    /// Fetch current playback to get artwork and detect track changes
     func fetchCurrentPlayback() async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -586,7 +548,6 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             
             guard let httpResponse = response as? HTTPURLResponse else { return }
             
-            // 204 = nothing playing
             if httpResponse.statusCode == 204 {
                 await MainActor.run {
                     self.isPlaying = false
@@ -606,25 +567,21 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             await MainActor.run {
                 self.isPlaying = playbackResponse.is_playing
                 
-                // Check if track changed
                 let newTrackId = playbackResponse.item?.id
                 if newTrackId != self.currentTrackId {
                     self.currentTrackId = newTrackId
                     self.currentTrackName = playbackResponse.item?.name
                     self.currentArtistName = playbackResponse.item?.artists.first?.name
                     
-                    // Get Spotify URL for attribution link
                     if let externalUrls = playbackResponse.item?.external_urls {
                         self.currentTrackSpotifyURL = externalUrls.spotify
                     }
                     
-                    // Get artwork - prefer 300x300 size per Spotify guidelines
                     if let images = playbackResponse.item?.album?.images, !images.isEmpty {
-                        // Try to find 300x300, otherwise use first (largest)
                         let artwork = images.first(where: { $0.width == 300 }) ?? images.first
                         if let urlString = artwork?.url {
                             self.currentArtworkURL = URL(string: urlString)
-                            print("🎨 Updated artwork for: \(self.currentTrackName ?? "Unknown")")
+                            print("Updated artwork for: \(self.currentTrackName ?? "Unknown")")
                         }
                     } else {
                         self.currentArtworkURL = nil
@@ -633,13 +590,11 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             }
             
         } catch {
-            // Silently fail - this is called every 3 seconds
         }
     }
     
     // MARK: - Shuffle Control
     
-    /// Enable shuffle on the target device
     private func enableShuffle(on deviceId: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -656,33 +611,29 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("🔀 Shuffle enabled")
+                    print("Shuffle enabled")
                 }
             }
         } catch {
-            // Silently fail
         }
     }
     
     // MARK: - Playback Control
     
-    /// Play a specific track
     func playTrack(trackId: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
         
-        // Get available devices
         let devices = await getAvailableDevices()
         
         guard !devices.isEmpty else {
-            print("❌ No Spotify devices found")
+            print("No Spotify devices found")
             await MainActor.run {
                 errorMessage = "Open Spotify app to play music"
             }
             return
         }
         
-        // Device selection priority
         let targetDevice: SpotifyDevice
         if let active = devices.first(where: { $0.is_active }) {
             targetDevice = active
@@ -695,7 +646,7 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             preferredDeviceId = targetDevice.id
         }
         
-        print("🎵 Playing track on: \(targetDevice.name)")
+        print("Playing track on: \(targetDevice.name)")
         
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
@@ -712,15 +663,14 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("✅ Track playing")
+                    print("Track playing")
                     await MainActor.run {
                         errorMessage = nil
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    // 🔥 Handle 401 - retry once
-                    print("⚠️ Token expired, retrying...")
+                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -736,37 +686,34 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                         }
                     }
                 } else {
-                    print("❌ Play failed: \(httpResponse.statusCode)")
+                    print("Play failed: \(httpResponse.statusCode)")
                     if let errorString = String(data: data, encoding: .utf8) {
                         print("Error: \(errorString)")
                     }
                 }
             }
         } catch {
-            print("❌ Error: \(error)")
+            print("Error: \(error)")
         }
     }
     
-    /// Play a playlist (with shuffle enabled and random starting track)
     func playPlaylist(playlistId: String) async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else {
-            print("❌ No access token")
+            print("No access token")
             return
         }
         
-        // Get available devices
         let devices = await getAvailableDevices()
         
         guard !devices.isEmpty else {
-            print("❌ No Spotify devices found")
+            print("No Spotify devices found")
             await MainActor.run {
                 errorMessage = "Open Spotify app to play music"
             }
             return
         }
         
-        // Device selection priority
         let targetDevice: SpotifyDevice
         if let active = devices.first(where: { $0.is_active }) {
             targetDevice = active
@@ -779,14 +726,12 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             preferredDeviceId = targetDevice.id
         }
         
-        // Enable shuffle first
         await enableShuffle(on: targetDevice.id)
         
-        // Get playlist track count so we can start at a random track
         let trackCount = await getPlaylistTrackCount(playlistId: playlistId) ?? 0
         let randomOffset = trackCount > 0 ? Int.random(in: 0..<trackCount) : 0
         
-        print("🎵 Playing playlist on: \(targetDevice.name)")
+        print("Playing playlist on: \(targetDevice.name)")
         
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
@@ -805,15 +750,14 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("✅ Playlist playing")
+                    print("Playlist playing")
                     await MainActor.run {
                         errorMessage = nil
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    // 🔥 Handle 401 - token expired, refresh and retry once
-                    print("⚠️ Token expired, retrying...")
+                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -821,7 +765,7 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                         let (_, retryResponse) = try await URLSession.shared.data(for: request)
                         if let retryHttp = retryResponse as? HTTPURLResponse,
                            retryHttp.statusCode == 204 || retryHttp.statusCode == 200 {
-                            print("✅ Playlist playing (retry)")
+                            print("Playlist playing (retry)")
                             await MainActor.run {
                                 errorMessage = nil
                                 isPlaying = true
@@ -830,18 +774,17 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                         }
                     }
                 } else {
-                    print("❌ Play failed: \(httpResponse.statusCode)")
+                    print("Play failed: \(httpResponse.statusCode)")
                     if let errorString = String(data: data, encoding: .utf8) {
                         print("Error: \(errorString)")
                     }
                 }
             }
         } catch {
-            print("❌ Error: \(error)")
+            print("Error: \(error)")
         }
     }
     
-    /// Pause playback
     func pausePlayback() async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -854,14 +797,13 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("✅ Paused")
+                    print("Paused")
                     await MainActor.run {
                         isPlaying = false
                         stopPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    // 🔥 Handle 401 - retry once
-                    print("⚠️ Token expired, retrying...")
+                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -878,11 +820,10 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                 }
             }
         } catch {
-            print("❌ Error pausing: \(error)")
+            print("Error pausing: \(error)")
         }
     }
     
-    /// Resume current playback (continues from where it was paused)
     func resumePlayback() async {
         await ensureValidToken()
         guard let accessToken = self.accessToken else { return }
@@ -895,13 +836,13 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("✅ Resumed playback")
+                    print("Resumed playback")
                     await MainActor.run {
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    print("⚠️ Token expired, retrying...")
+                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -918,7 +859,7 @@ final class SpotifyManager: NSObject {   // NSObject for selector-based Timer
                 }
             }
         } catch {
-            print("❌ Error resuming: \(error)")
+            print("Error resuming: \(error)")
         }
     }
 }
@@ -1028,7 +969,6 @@ struct SpotifyExternalURLs: Codable {
 // MARK: - Data Extension for Base64URL Encoding
 
 extension Data {
-    /// Base64URL encoding (RFC 4648) - compatible with PKCE
     func base64URLEncodedString() -> String {
         return self.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")

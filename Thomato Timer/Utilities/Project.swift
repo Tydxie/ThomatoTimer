@@ -10,7 +10,7 @@ import Foundation
 struct Project: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
-    var emoji: String? // Optional emoji
+    var emoji: String?
     let createdAt: Date
     
     init(id: UUID = UUID(), name: String, emoji: String? = nil, createdAt: Date = Date()) {
@@ -29,7 +29,7 @@ struct Project: Identifiable, Codable, Hashable {
     }
 }
 
-// Universal milestone system
+
 struct Milestone {
     let hours: Int
     let emoji: String
@@ -60,6 +60,6 @@ struct Milestone {
                 return milestone
             }
         }
-        return nil // Already at max
+        return nil 
     }
 }

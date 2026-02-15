@@ -10,8 +10,8 @@ import SwiftUI
 
 // MARK: - Shared popover size for ALL macOS sheets & dropdowns
 enum MacPopoverLayout {
-    static let width: CGFloat = 380    // EDIT THIS to test width
-    static let height: CGFloat = 620   // EDIT THIS to test height
+    static let width: CGFloat = 380
+    static let height: CGFloat = 620
 }
 
 struct MacMenuPopoverView: View {
@@ -19,7 +19,6 @@ struct MacMenuPopoverView: View {
     let spotifyManager: SpotifyManager
     let appleMusicManager: AppleMusicManager
     
-    // Still injected so we can pass it down into SettingsView
     @EnvironmentObject var menuBarManager: MenuBarManager
     
     @State private var selectedService: MusicService = .none
@@ -67,44 +66,37 @@ struct MacMenuPopoverView: View {
             
             VStack(spacing: 16) {
                 
-                // Project switcher
                 ProjectSwitcherView(viewModel: viewModel)
                     .padding(.top, 8)
                     .padding(.horizontal)
                 
-                // Artwork / phase image + Spotify attribution
                 VStack(spacing: 8) {
                     artworkImageView
                         .frame(width: 200, height: 200)
                         .cornerRadius(8)
                         .shadow(radius: 3)
                     
-                    // 🔥 Always reserve space for attribution to prevent layout shifts
                     Group {
                         if selectedService == .spotify && isMusicPlaying {
                             spotifyAttribution
                         } else {
-                            // Invisible placeholder that maintains the same height
                             spotifyAttribution
                                 .opacity(0)
                         }
                     }
-                    .frame(height: 32) // Fixed height for 2-line attribution
+                    .frame(height: 32)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
                 
-                // Timer title
                 Text(viewModel.phaseTitle)
                     .font(.title2)
                     .bold()
                     .padding(.top, 20)
                 
-                // Timer value
                 Text(viewModel.displayTime)
                     .font(.system(size: 48, weight: .bold, design: .monospaced))
                 
-                // Slider
                 VStack(spacing: 4) {
                     Slider(
                         value: Binding(
@@ -134,7 +126,6 @@ struct MacMenuPopoverView: View {
                     .padding(.horizontal, 40)
                 }
                 
-                // Buttons
                 HStack(spacing: 16) {
                     if viewModel.timerState.isRunning {
                         Button("Skip") { viewModel.skipToNext() }
@@ -158,7 +149,6 @@ struct MacMenuPopoverView: View {
                 .font(.title3)
                 .padding(.top, 4)
                 
-                // Checkmarks
                 Text(viewModel.timerState.checkmarks)
                     .font(.title3)
                     .padding(.top, 4)
@@ -192,7 +182,6 @@ struct MacMenuPopoverView: View {
                 appleMusicManager: appleMusicManager,
                 selectedService: $selectedService
             )
-            // Pass the same MenuBarManager into Settings so the toggle works
             .environmentObject(menuBarManager)
         }
         .sheet(isPresented: $showingProjectList) {
@@ -212,7 +201,6 @@ struct MacMenuPopoverView: View {
             
             Spacer()
             
-            // Gear now ONLY opens Settings
             Button {
                 showingSettings = true
             } label: {

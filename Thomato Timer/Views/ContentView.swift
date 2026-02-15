@@ -11,7 +11,7 @@ import ActivityKit
 #endif
 
 struct ContentView: View {
-    @ObservedObject var viewModel: TimerViewModel  // 🔥 FIX: Accept from parent instead of creating
+    @ObservedObject var viewModel: TimerViewModel
     @State private var showingSettings = false
     @State private var showingProjectList = false
     @State private var selectedService: MusicService = .none
@@ -67,21 +67,17 @@ struct ContentView: View {
         NavigationStack {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
-                    // TOP HALF - Project Picker + Image
                     VStack(spacing: 16) {
-                        // Project Picker
                         ProjectSwitcherView(viewModel: viewModel)
                             .padding(.horizontal)
                         
                         Spacer()
                         
-                        // Image - show album artwork if playing, otherwise phase image
                         artworkImageView
                             .frame(width: 250, height: 250)
                             .cornerRadius(8)
                             .shadow(radius: 3)
                         
-                        // Spotify attribution
                         if selectedService == .spotify && isMusicPlaying {
                             spotifyAttribution
                         }
@@ -90,18 +86,14 @@ struct ContentView: View {
                     }
                     .frame(height: geometry.size.height / 2)
                     
-                    // BOTTOM HALF - Timer UI
                     VStack(spacing: 16) {
-                        // Phase Title
                         Text(viewModel.phaseTitle)
                             .font(.title2)
                             .bold()
                         
-                        // Timer Display
                         Text(viewModel.displayTime)
                             .font(.system(size: 64, weight: .bold, design: .monospaced))
                         
-                        // Slider
                         VStack(spacing: 5) {
                             Slider(
                                 value: Binding(
@@ -130,7 +122,6 @@ struct ContentView: View {
                         }
                         .padding(.horizontal, 40)
                         
-                        // Buttons
                         HStack(spacing: 20) {
                             if viewModel.timerState.isRunning {
                                 Button("Skip") { viewModel.skipToNext() }
@@ -150,8 +141,6 @@ struct ContentView: View {
                         }
                         .font(.title3)
                         
-                        
-                        // Checkmarks
                         Text(viewModel.timerState.checkmarks)
                             .font(.title3)
                         
@@ -165,10 +154,10 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                       Text("Thomodoro")
-                           .font(.headline)
-                           .foregroundColor(.thomodoroGold)
-                   }
+                    Text("Thomodoro")
+                        .font(.headline)
+                        .foregroundColor(.thomodoroGold)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gearshape")

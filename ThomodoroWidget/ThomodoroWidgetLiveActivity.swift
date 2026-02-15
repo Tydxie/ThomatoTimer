@@ -3,6 +3,7 @@
 //  ThomodoroWidget
 //
 //  Created by Thomas Xie on 2025/12/22.
+//  Refactored: 2025/12/30 - Enum state system
 //
 
 import ActivityKit
@@ -29,19 +30,19 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 }
                 
                 DynamicIslandExpandedRegion(.trailing) {
-                    // 🔥 FIX: Only use timerInterval when actively running (not paused)
-                    if context.state.isRunning && !context.state.isPaused {
+                    // 🔥 Only show countdown when actively running
+                    if context.state.runState == .running {
                         Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                             .font(.title2)
                             .bold()
                             .monospacedDigit()
                     } else {
-                        // Show static time when paused or stopped
+                        // Show static time when paused or idle
                         Text(timeString(context.state.timeRemaining))
                             .font(.title2)
                             .bold()
                             .monospacedDigit()
-                            .foregroundStyle(context.state.isPaused ? .secondary : .primary)
+                            .foregroundStyle(context.state.runState == .paused ? .secondary : .primary)
                     }
                 }
                 
@@ -54,14 +55,14 @@ struct ThomodoroWidgetLiveActivity: Widget {
                                 .foregroundColor(.white)
                         }
                         
-                        // Pause/Resume button - 🔥 FIX: Use explicit pause/resume URLs
-                        if context.state.isPaused {
+                        // Pause/Resume button - 🔥 Uses explicit pause/resume URLs
+                        if context.state.runState == .paused {
                             Link(destination: URL(string: "thomato-timer://resume")!) {
                                 Image(systemName: "play.fill")
                                     .font(.title2)
                                     .foregroundColor(.white)
                             }
-                        } else {
+                        } else if context.state.runState == .running {
                             Link(destination: URL(string: "thomato-timer://pause")!) {
                                 Image(systemName: "pause.fill")
                                     .font(.title2)
@@ -75,17 +76,17 @@ struct ThomodoroWidgetLiveActivity: Widget {
                 Image(systemName: phaseIcon(context.state.phase))
                     .foregroundColor(phaseColor(context.state.phase))
             } compactTrailing: {
-                // 🔥 FIX: Only use timerInterval when actively running (not paused)
-                if context.state.isRunning && !context.state.isPaused {
+                // 🔥 Only show countdown when actively running
+                if context.state.runState == .running {
                     Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                         .monospacedDigit()
                         .font(.caption2)
                 } else {
-                    // Show static time when paused or stopped
+                    // Show static time when paused or idle
                     Text(timeString(context.state.timeRemaining))
                         .monospacedDigit()
                         .font(.caption2)
-                        .foregroundStyle(context.state.isPaused ? .secondary : .primary)
+                        .foregroundStyle(context.state.runState == .paused ? .secondary : .primary)
                 }
             } minimal: {
                 Image(systemName: phaseIcon(context.state.phase))
@@ -148,17 +149,17 @@ struct LockScreenLiveActivityView: View {
             
             Spacer()
             
-            // Center: Timer - 🔥 FIX: Only use timerInterval when actively running
-            if context.state.isRunning && !context.state.isPaused {
+            // Center: Timer - 🔥 Only show countdown when actively running
+            if context.state.runState == .running {
                 Text(timerInterval: context.state.lastUpdateTime...context.state.lastUpdateTime.addingTimeInterval(context.state.timeRemaining), countsDown: true)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
             } else {
-                // Show static time when paused or stopped
+                // Show static time when paused or idle
                 Text(timeString)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(context.state.isPaused ? .secondary : .primary)
+                    .foregroundStyle(context.state.runState == .paused ? .secondary : .primary)
             }
             
             Spacer()
@@ -172,14 +173,14 @@ struct LockScreenLiveActivityView: View {
                         .foregroundColor(.white)
                 }
                 
-                // Pause/Resume button - 🔥 FIX: Use explicit pause/resume URLs
-                if context.state.isPaused {
+                // Pause/Resume button - 🔥 Uses explicit pause/resume URLs
+                if context.state.runState == .paused {
                     Link(destination: URL(string: "thomato-timer://resume")!) {
                         Image(systemName: "play.fill")
                             .font(.title3)
                             .foregroundColor(.white)
                     }
-                } else {
+                } else if context.state.runState == .running {
                     Link(destination: URL(string: "thomato-timer://pause")!) {
                         Image(systemName: "pause.fill")
                             .font(.title3)
@@ -237,8 +238,7 @@ struct LockScreenLiveActivityView: View {
     TimerAttributes.ContentState(
         phase: .work,
         timeRemaining: 1500,
-        isRunning: true,
-        isPaused: false,
+        runState: .running,  // 🔥 Updated to use runState
         completedSessions: 2,
         lastUpdateTime: Date()
     )

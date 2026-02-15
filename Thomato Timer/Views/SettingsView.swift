@@ -17,9 +17,7 @@ struct SettingsView: View {
     @State private var showingStats = false
     
     #if os(macOS)
-    // Stored preference used by the Mac menu bar popover behavior
     @AppStorage("keepWindowOpen") private var keepWindowOpen = false
-    // 🔥 NEW: Access to MenuBarManager to force close when toggling off
     @EnvironmentObject var menuBarManager: MenuBarManager
     #endif
     
@@ -37,7 +35,6 @@ struct SettingsView: View {
     private var iOSLayout: some View {
         NavigationStack {
             Form {
-                // Timer Settings Section
                 Section {
                     Stepper("Work Session: \(viewModel.timerState.workDuration) min",
                             value: $viewModel.timerState.workDuration, in: 1...60)
@@ -54,12 +51,11 @@ struct SettingsView: View {
                         in: 2...8
                     )
                     
-                    // 🔥 UPDATED: Allow "No Warmup" option
                     HStack {
                         Text("Warmup Duration")
                         Spacer()
                         Picker("", selection: $viewModel.timerState.warmupDuration) {
-                            Text("None").tag(0)  // 🔥 NEW
+                            Text("None").tag(0)
                             Text("5 min").tag(5)
                             Text("10 min").tag(10)
                         }
@@ -67,14 +63,11 @@ struct SettingsView: View {
                         .frame(width: 180)
                     }
                     .onChange(of: viewModel.timerState.warmupDuration) { oldValue, newValue in
-                        // Update display if timer not started
                         if !viewModel.timerState.isRunning && !viewModel.timerState.isPaused {
                             if newValue == 0 && viewModel.timerState.currentPhase == .warmup {
-                                // Switch to work phase when warmup is disabled
                                 viewModel.timerState.currentPhase = .work
                                 viewModel.timerState.timeRemaining = TimeInterval(viewModel.timerState.workDuration * 60)
                             } else if newValue > 0 && viewModel.timerState.currentPhase == .work && viewModel.timerState.completedWorkSessions == 0 {
-                                // Switch back to warmup if re-enabled at beginning
                                 viewModel.timerState.currentPhase = .warmup
                                 viewModel.timerState.timeRemaining = TimeInterval(newValue * 60)
                             }
@@ -85,7 +78,6 @@ struct SettingsView: View {
                     Label("Timer Settings", systemImage: "clock")
                 }
                 
-                // Music Integration Section
                 Section {
                     Picker("Service", selection: $selectedService) {
                         ForEach(MusicService.allCases) { service in
@@ -102,7 +94,6 @@ struct SettingsView: View {
                     Label("Music Integration", systemImage: "music.note")
                 }
                 
-                // Debug Section
                 Section {
                     HStack {
                         Text("Recorded Crashes")
@@ -121,19 +112,19 @@ struct SettingsView: View {
                     }
                     
                     Button("Test Logging System") {
-                        CrashLogger.shared.logEvent("🧪 TEST EVENT - Tapped at \(Date())")
-                        CrashLogger.shared.logEvent("🧪 TEST EVENT 2 - This is a second test")
-                        CrashLogger.shared.logEvent("🧪 TEST EVENT 3 - Third test event")
+                        CrashLogger.shared.logEvent("TEST EVENT - Tapped at \(Date())")
+                        CrashLogger.shared.logEvent("TEST EVENT 2 - This is a second test")
+                        CrashLogger.shared.logEvent("TEST EVENT 3 - Third test event")
                         
                         let count = CrashLogger.shared.getAppEvents().count
-                        print("✅ Test completed. Total events: \(count)")
+                        print("Test completed. Total events: \(count)")
                     }
                     
                     Button(action: {
                         let report = CrashLogger.shared.exportLogs()
                         UIPasteboard.general.string = report
                         
-                        print("\n📋 DEBUG REPORT COPIED TO CLIPBOARD:")
+                        print("\nDEBUG REPORT COPIED TO CLIPBOARD:")
                         print("=====================================")
                         print(report)
                         print("=====================================\n")
@@ -168,7 +159,6 @@ struct SettingsView: View {
                     Label("Debug Info", systemImage: "ladybug")
                 }
                 
-                // Statistics Button
                 Section {
                     Button(action: { showingStats = true }) {
                         HStack {
@@ -324,7 +314,6 @@ struct SettingsView: View {
     #if os(macOS)
     private var macOSLayout: some View {
         VStack(spacing: 0) {
-            // Top bar (title + actions)
             HStack {
                 Text("Settings")
                     .font(.title2)
@@ -350,7 +339,6 @@ struct SettingsView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    // Timer Settings Section
                     GroupBox(label: Label("Timer Settings", systemImage: "clock")) {
                         VStack(spacing: 15) {
                             HStack {
@@ -385,12 +373,11 @@ struct SettingsView: View {
                                     .frame(width: 60)
                             }
                             
-                            // 🔥 UPDATED: Allow "No Warmup" option
                             HStack {
                                 Text("Warmup Duration:")
                                     .frame(width: 180, alignment: .leading)
                                 Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
-                                    Text("None").tag(0)  // 🔥 NEW
+                                    Text("None").tag(0)
                                     Text("5 min").tag(5)
                                     Text("10 min").tag(10)
                                 }
@@ -398,14 +385,11 @@ struct SettingsView: View {
                                 .frame(width: 180)
                             }
                             .onChange(of: viewModel.timerState.warmupDuration) { oldValue, newValue in
-                                // Update display if timer not started
                                 if !viewModel.timerState.isRunning && !viewModel.timerState.isPaused {
                                     if newValue == 0 && viewModel.timerState.currentPhase == .warmup {
-                                        // Switch to work phase when warmup is disabled
                                         viewModel.timerState.currentPhase = .work
                                         viewModel.timerState.timeRemaining = TimeInterval(viewModel.timerState.workDuration * 60)
                                     } else if newValue > 0 && viewModel.timerState.currentPhase == .work && viewModel.timerState.completedWorkSessions == 0 {
-                                        // Switch back to warmup if re-enabled at beginning
                                         viewModel.timerState.currentPhase = .warmup
                                         viewModel.timerState.timeRemaining = TimeInterval(newValue * 60)
                                     }
@@ -415,7 +399,6 @@ struct SettingsView: View {
                         .padding(.vertical, 10)
                     }
                     
-                    // Music Integration Section
                     GroupBox(label: Label("Music Integration", systemImage: "music.note")) {
                         VStack(spacing: 15) {
                             HStack {
@@ -446,7 +429,6 @@ struct SettingsView: View {
                         .padding(.vertical, 10)
                     }
                     
-                    // Window Behavior Section
                     GroupBox(label: Label("Window Behavior", systemImage: "rectangle.topthird.inset")) {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("Keep timer dropdown open", isOn: $keepWindowOpen)
@@ -465,7 +447,6 @@ struct SettingsView: View {
                         .padding(.vertical, 6)
                     }
                     
-                    // Debug Section
                     GroupBox(label: Label("Debug Info", systemImage: "ladybug")) {
                         VStack(spacing: 12) {
                             HStack {
@@ -483,7 +464,7 @@ struct SettingsView: View {
                                 let pasteboard = NSPasteboard.general
                                 pasteboard.clearContents()
                                 pasteboard.setString(report, forType: .string)
-                                print("📋 Debug report copied to clipboard")
+                                print("Debug report copied to clipboard")
                                 print(report)
                             }) {
                                 Label("Copy Debug Report", systemImage: "doc.on.clipboard")
