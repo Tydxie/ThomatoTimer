@@ -32,6 +32,8 @@
 		68D37B542F4DE80F00684ED9 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B532F4DE80E00684ED9 /* TimerEngine.swift */; };
 		68D37B552F4DE80F00684ED9 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B532F4DE80E00684ED9 /* TimerEngine.swift */; };
 		68D37B572F4DF23700684ED9 /* MusicCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B562F4DF23700684ED9 /* MusicCoordinator.swift */; };
+		68D37B6D2F4E035D00684ED9 /* TimerPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */; };
+		68D37B6E2F4E035D00684ED9 /* TimerPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */; };
 		68F2D2C62EE0AFB2000AA958 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */; platformFilter = ios; };
 		68F984AB2ED9F4AA00C1757B /* Thomato_TimerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */; };
 		68F984AF2ED9F4AC00C1757B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 68F984AE2ED9F4AC00C1757B /* Assets.xcassets */; };
@@ -91,6 +93,7 @@
 		689DBBAE2EF940DF000B85F6 /* NotificationNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNames.swift; sourceTree = "<group>"; };
 		68D37B532F4DE80E00684ED9 /* TimerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerEngine.swift; sourceTree = "<group>"; };
 		68D37B562F4DF23700684ED9 /* MusicCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicCoordinator.swift; sourceTree = "<group>"; };
+		68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerPhase.swift; sourceTree = "<group>"; };
 		68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		68F984A72ED9F4AA00C1757B /* Thomodoro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Thomodoro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thomato_TimerApp.swift; sourceTree = "<group>"; };
@@ -161,6 +164,7 @@
 				68F984BF2ED9F64A00C1757B /* TimerViewModel.swift */,
 				68F984BD2ED9F5D100C1757B /* TimerState.swift */,
 				68D37B532F4DE80E00684ED9 /* TimerEngine.swift */,
+				68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */,
 			);
 			path = Timer;
 			sourceTree = "<group>";
@@ -242,8 +246,6 @@
 				68D37B4D2F4DE42500684ED9 /* Timer */,
 				68F984BC2ED9F50300C1757B /* App */,
 				68F984BB2ED9F4FA00C1757B /* Views */,
-				68F984BA2ED9F4EE00C1757B /* ViewModels */,
-				68F984B92ED9F4E900C1757B /* Models */,
 				68F984AE2ED9F4AC00C1757B /* Assets.xcassets */,
 				68F984B02ED9F4AC00C1757B /* Thomato_Timer.entitlements */,
 				68F984B12ED9F4AC00C1757B /* Preview Content */,
@@ -260,20 +262,6 @@
 				68F984B22ED9F4AC00C1757B /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		68F984B92ED9F4E900C1757B /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		68F984BA2ED9F4EE00C1757B /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		68F984BB2ED9F4FA00C1757B /* Views */ = {
@@ -407,6 +395,7 @@
 			files = (
 				6817FFEE2EF9F27E0081F263 /* TimerState.swift in Sources */,
 				6817FFEF2EF9F3AF0081F263 /* TimerAttributes.swift in Sources */,
+				68D37B6E2F4E035D00684ED9 /* TimerPhase.swift in Sources */,
 				68D37B552F4DE80F00684ED9 /* TimerEngine.swift in Sources */,
 				6817FFEC2EF9E7C30081F263 /* SharedWidgetTypes.swift in Sources */,
 			);
@@ -427,6 +416,7 @@
 				6871CBB82EDA82F900C374C2 /* ProjectListView.swift in Sources */,
 				6871CBA62EDA72E000C374C2 /* AppleMusicManager.swift in Sources */,
 				6871CBAC2EDA786500C374C2 /* MenuBarManager.swift in Sources */,
+				68D37B6D2F4E035D00684ED9 /* TimerPhase.swift in Sources */,
 				6871CBB02EDA7E9E00C374C2 /* StatisticsManager.swift in Sources */,
 				6871CBAA2EDA77B200C374C2 /* NotificationManager.swift in Sources */,
 				68D37B572F4DF23700684ED9 /* MusicCoordinator.swift in Sources */,
