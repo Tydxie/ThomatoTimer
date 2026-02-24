@@ -7,13 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6817FFD52EF9E6AC0081F263 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6821C6182EEC608E0070CD7E /* WidgetKit.framework */; };
-		6817FFD62EF9E6AC0081F263 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6821C61A2EEC608E0070CD7E /* SwiftUI.framework */; };
-		6817FFE52EF9E6AE0081F263 /* ThomodoroWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6817FFD42EF9E6AC0081F263 /* ThomodoroWidgetExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6817FFEB2EF9E7C30081F263 /* SharedWidgetTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6817FFEA2EF9E7C30081F263 /* SharedWidgetTypes.swift */; };
-		6817FFEC2EF9E7C30081F263 /* SharedWidgetTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6817FFEA2EF9E7C30081F263 /* SharedWidgetTypes.swift */; };
-		6817FFEE2EF9F27E0081F263 /* TimerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984BD2ED9F5D100C1757B /* TimerState.swift */; };
-		6817FFEF2EF9F3AF0081F263 /* TimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 689DBB9D2EF891FE000B85F6 /* TimerAttributes.swift */; };
 		68529F1C2EE63CEB00EE10E7 /* MacMenuPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68529F1B2EE63CDE00EE10E7 /* MacMenuPopoverView.swift */; };
 		6871CBA42EDA72B000C374C2 /* MusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBA32EDA72B000C374C2 /* MusicService.swift */; };
 		6871CBA62EDA72E000C374C2 /* AppleMusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6871CBA52EDA72E000C374C2 /* AppleMusicManager.swift */; };
@@ -30,10 +24,8 @@
 		689DBB9E2EF891FE000B85F6 /* TimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 689DBB9D2EF891FE000B85F6 /* TimerAttributes.swift */; };
 		689DBBAF2EF940DF000B85F6 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 689DBBAE2EF940DF000B85F6 /* NotificationNames.swift */; };
 		68D37B542F4DE80F00684ED9 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B532F4DE80E00684ED9 /* TimerEngine.swift */; };
-		68D37B552F4DE80F00684ED9 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B532F4DE80E00684ED9 /* TimerEngine.swift */; };
 		68D37B572F4DF23700684ED9 /* MusicCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B562F4DF23700684ED9 /* MusicCoordinator.swift */; };
 		68D37B6D2F4E035D00684ED9 /* TimerPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */; };
-		68D37B6E2F4E035D00684ED9 /* TimerPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B6C2F4E035C00684ED9 /* TimerPhase.swift */; };
 		68D37B842F4E1EF100684ED9 /* MusicPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D37B832F4E1EF100684ED9 /* MusicPlayerService.swift */; };
 		68F2D2C62EE0AFB2000AA958 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 68F2D2C52EE0AFB2000AA958 /* LaunchScreen.storyboard */; platformFilter = ios; };
 		68F984AB2ED9F4AA00C1757B /* Thomato_TimerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */; };
@@ -47,16 +39,6 @@
 		68F984C82EDA421800C1757B /* SpotifyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F984C72EDA421800C1757B /* SpotifyManager.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		6817FFE32EF9E6AE0081F263 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 68F9849F2ED9F4AA00C1757B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6817FFD32EF9E6AC0081F263;
-			remoteInfo = ThomodoroWidgetExtension;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXCopyFilesBuildPhase section */
 		6821C62B2EEC60900070CD7E /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -64,7 +46,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				6817FFE52EF9E6AE0081F263 /* ThomodoroWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -72,7 +53,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		6817FFD42EF9E6AC0081F263 /* ThomodoroWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThomodoroWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6817FFEA2EF9E7C30081F263 /* SharedWidgetTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedWidgetTypes.swift; sourceTree = "<group>"; };
 		6821C6182EEC608E0070CD7E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6821C61A2EEC608E0070CD7E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -110,37 +90,15 @@
 		68F984C72EDA421800C1757B /* SpotifyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6817FFE82EF9E6AE0081F263 /* Exceptions for "ThomodoroWidget" folder in "ThomodoroWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 6817FFD32EF9E6AC0081F263 /* ThomodoroWidgetExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6817FFD72EF9E6AD0081F263 /* ThomodoroWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				6817FFE82EF9E6AE0081F263 /* Exceptions for "ThomodoroWidget" folder in "ThomodoroWidgetExtension" target */,
-			);
 			path = ThomodoroWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		6817FFD12EF9E6AC0081F263 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6817FFD62EF9E6AC0081F263 /* SwiftUI.framework in Frameworks */,
-				6817FFD52EF9E6AC0081F263 /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		68F984A42ED9F4AA00C1757B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -234,7 +192,6 @@
 			isa = PBXGroup;
 			children = (
 				68F984A72ED9F4AA00C1757B /* Thomodoro.app */,
-				6817FFD42EF9E6AC0081F263 /* ThomodoroWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -293,28 +250,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6817FFD32EF9E6AC0081F263 /* ThomodoroWidgetExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 6817FFE92EF9E6AE0081F263 /* Build configuration list for PBXNativeTarget "ThomodoroWidgetExtension" */;
-			buildPhases = (
-				6817FFD02EF9E6AC0081F263 /* Sources */,
-				6817FFD12EF9E6AC0081F263 /* Frameworks */,
-				6817FFD22EF9E6AC0081F263 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				6817FFD72EF9E6AD0081F263 /* ThomodoroWidget */,
-			);
-			name = ThomodoroWidgetExtension;
-			packageProductDependencies = (
-			);
-			productName = ThomodoroWidgetExtension;
-			productReference = 6817FFD42EF9E6AC0081F263 /* ThomodoroWidgetExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		68F984A62ED9F4AA00C1757B /* Thomato Timer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 68F984B62ED9F4AC00C1757B /* Build configuration list for PBXNativeTarget "Thomato Timer" */;
@@ -327,7 +262,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				6817FFE42EF9E6AE0081F263 /* PBXTargetDependency */,
 			);
 			name = "Thomato Timer";
 			productName = "Thomato Timer";
@@ -344,9 +278,6 @@
 				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
-					6817FFD32EF9E6AC0081F263 = {
-						CreatedOnToolsVersion = 26.1.1;
-					};
 					68F984A62ED9F4AA00C1757B = {
 						CreatedOnToolsVersion = 15.3;
 					};
@@ -366,19 +297,11 @@
 			projectRoot = "";
 			targets = (
 				68F984A62ED9F4AA00C1757B /* Thomato Timer */,
-				6817FFD32EF9E6AC0081F263 /* ThomodoroWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		6817FFD22EF9E6AC0081F263 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		68F984A52ED9F4AA00C1757B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -392,18 +315,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		6817FFD02EF9E6AC0081F263 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6817FFEE2EF9F27E0081F263 /* TimerState.swift in Sources */,
-				6817FFEF2EF9F3AF0081F263 /* TimerAttributes.swift in Sources */,
-				68D37B6E2F4E035D00684ED9 /* TimerPhase.swift in Sources */,
-				68D37B552F4DE80F00684ED9 /* TimerEngine.swift in Sources */,
-				6817FFEC2EF9E7C30081F263 /* SharedWidgetTypes.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		68F984A32ED9F4AA00C1757B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -440,85 +351,7 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		6817FFE42EF9E6AE0081F263 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			platformFilter = ios;
-			target = 6817FFD32EF9E6AC0081F263 /* ThomodoroWidgetExtension */;
-			targetProxy = 6817FFE32EF9E6AE0081F263 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCBuildConfiguration section */
-		6817FFE62EF9E6AE0081F263 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ThomodoroWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ThomodoroWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mountiepython.Thomato-Timer.ThomodoroWidget";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		6817FFE72EF9E6AE0081F263 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ThomodoroWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ThomodoroWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.mountiepython.Thomato-Timer.ThomodoroWidget";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		68F984B42ED9F4AC00C1757B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -735,15 +568,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6817FFE92EF9E6AE0081F263 /* Build configuration list for PBXNativeTarget "ThomodoroWidgetExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				6817FFE62EF9E6AE0081F263 /* Debug */,
-				6817FFE72EF9E6AE0081F263 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		68F984A22ED9F4AA00C1757B /* Build configuration list for PBXProject "Thomato Timer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
