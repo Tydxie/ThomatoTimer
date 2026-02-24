@@ -13,50 +13,6 @@ struct StatisticsView: View {
     @State private var projectManager = ProjectManager.shared
     
     var body: some View {
-        #if os(iOS)
-        iOSLayout
-        #else
-        macOSLayout
-        #endif
-    }
-    
-    // MARK: - iOS Layout
-    
-    #if os(iOS)
-    private var iOSLayout: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    TodayStatsCard()
-                    
-                    AllTimeStatsCard()
-                    
-                    if let firstUse = statsManager.firstUseDate {
-                        Text("Member since \(firstUse.formatted(date: .long, time: .omitted))")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 10)
-                            .padding(.bottom, 20)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-            }
-            .navigationTitle("Statistics")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-    #endif
-    
-    // MARK: - macOS Layout
-
-    #if os(macOS)
-    private var macOSLayout: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Statistics")
@@ -96,10 +52,8 @@ struct StatisticsView: View {
             .frame(width: 380, height: 520)
         }
     }
-    #endif
 }
 
-// MARK: - TODAY Card
 
 struct TodayStatsCard: View {
     @State private var statsManager = StatisticsManager.shared
@@ -180,7 +134,6 @@ struct TodayProjectRow: View {
     }
 }
 
-// MARK: - ALL TIME Card
 
 struct AllTimeStatsCard: View {
     @State private var statsManager = StatisticsManager.shared

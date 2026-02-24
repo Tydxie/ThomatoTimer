@@ -12,7 +12,7 @@ struct SessionRecord: Codable {
     let date: Date
     let type: SessionType
     let durationMinutes: Int
-    let projectId: UUID? // Optional - sessions can be unassigned
+    let projectId: UUID?
     
     enum SessionType: String, Codable {
         case work
@@ -28,7 +28,6 @@ class StatisticsManager {
     private let sessionsKey = "completedSessions"
     private let firstUseKey = "firstUseDate"
     
-    // Use iCloud key-value store for sync across devices
     private let iCloud = NSUbiquitousKeyValueStore.default
     
     var sessions: [SessionRecord] = []

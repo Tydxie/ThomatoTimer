@@ -12,18 +12,17 @@ import CryptoKit
 
 @Observable
 final class SpotifyManager: NSObject {
-    // MARK: - Published State
     var isAuthenticated = false
     var accessToken: String?
     var refreshToken: String?
     var tokenExpirationDate: Date?
     var errorMessage: String?
     
-    // MARK: - Private PKCE State
+
     private var codeVerifier: String?
     private var state: String?
     
-    // MARK: - Playlist & Track State
+
     var playlists: [SpotifyPlaylist] = []
     var selectedWorkPlaylistId: String?
     var selectedBreakPlaylistId: String?
@@ -31,7 +30,7 @@ final class SpotifyManager: NSObject {
     var warmupTrackName: String?
     var searchResults: [SpotifyTrack] = []
     
-    // MARK: - Current Playback State (for artwork)
+
     var currentArtworkURL: URL?
     var isPlaying = false
     var currentTrackName: String?
@@ -39,14 +38,13 @@ final class SpotifyManager: NSObject {
     var currentTrackSpotifyURL: String?
     private var currentTrackId: String?
     
-    // MARK: - Device Preference
+
     private var preferredDeviceId: String?
     
-    // MARK: - Playback Polling
+
     private var pollingTimer: Timer?
     private var isPollingEnabled = false
     
-    // MARK: - Authentication Flow
     
     @MainActor
     func authenticate() {
@@ -74,11 +72,8 @@ final class SpotifyManager: NSObject {
             return
         }
         
-        #if os(macOS)
         NSWorkspace.shared.open(url)
-        #else
-        UIApplication.shared.open(url)
-        #endif
+
     }
     
     func handleRedirect(url: URL) async {
@@ -174,8 +169,6 @@ final class SpotifyManager: NSObject {
                 self.errorMessage = nil
                 self.codeVerifier = nil
                 self.state = nil
-                
-                print("Spotify authenticated successfully")
             }
             
             await fetchPlaylists()
@@ -189,14 +182,11 @@ final class SpotifyManager: NSObject {
     
     func refreshAccessToken() async {
         guard let refreshToken = self.refreshToken else {
-            print("No refresh token available")
             await MainActor.run {
                 errorMessage = "No refresh token available"
             }
             return
         }
-        
-        print("Refreshing Spotify access token...")
         
         var request = URLRequest(url: URL(string: SpotifyConfig.tokenURL)!)
         request.httpMethod = "POST"
@@ -218,7 +208,6 @@ final class SpotifyManager: NSObject {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("Token refresh failed")
                 await MainActor.run {
                     errorMessage = "Token refresh failed"
                 }
@@ -234,19 +223,15 @@ final class SpotifyManager: NSObject {
                 if let newRefreshToken = tokenResponse.refresh_token {
                     self.refreshToken = newRefreshToken
                 }
-                
-                print("Token refreshed successfully")
             }
             
         } catch {
-            print("Token refresh error: \(error)")
             await MainActor.run {
                 errorMessage = "Refresh error: \(error.localizedDescription)"
             }
         }
     }
     
-    // MARK: - PKCE Helper Functions
     
     private func generateCodeVerifier() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
@@ -266,21 +251,6 @@ final class SpotifyManager: NSObject {
         return Data(bytes).base64URLEncodedString()
     }
     
-    // MARK: - Testing
-    func testConfiguration() -> String {
-        """
-        Spotify Configuration (Works as of 11/25/2025)
-        
-        Client ID: \(SpotifyConfig.clientID.prefix(15))...
-        Redirect URI: \(SpotifyConfig.redirectURI)
-        Auth Method: PKCE (S256)
-        Scopes: \(SpotifyConfig.scopeString)
-        
-        Status: \(isAuthenticated ? "Authenticated" : "Not authenticated")
-        """
-    }
-    
-    // MARK: - Playlist Management
     
     func fetchPlaylists() async {
         await ensureValidToken()
@@ -305,7 +275,6 @@ final class SpotifyManager: NSObject {
             }
             
             if httpResponse.statusCode == 401 {
-                print("401 Unauthorized - refreshing token and retrying...")
                 await refreshAccessToken()
                 
                 if let newToken = self.accessToken {
@@ -346,7 +315,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Playlist Metadata
     
     private func getPlaylistTrackCount(playlistId: String) async -> Int? {
         await ensureValidToken()
@@ -374,12 +342,10 @@ final class SpotifyManager: NSObject {
             let decoded = try JSONDecoder().decode(PlaylistTrackCountResponse.self, from: data)
             return decoded.tracks.total
         } catch {
-            print("Error getting playlist track count: \(error)")
             return nil
         }
     }
     
-    // MARK: - Track Search
     
     func searchTracks(query: String) async {
         await ensureValidToken()
@@ -412,7 +378,6 @@ final class SpotifyManager: NSObject {
             }
             
             if httpResponse.statusCode == 401 {
-                print("401 Unauthorized - refreshing token and retrying...")
                 await refreshAccessToken()
                 
                 if let newToken = self.accessToken {
@@ -453,7 +418,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Device Management
     
     func getAvailableDevices() async -> [SpotifyDevice] {
         guard let accessToken = self.accessToken else { return [] }
@@ -477,7 +441,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Token Management
 
     private func ensureValidToken() async {
         guard let expirationDate = tokenExpirationDate else {
@@ -492,7 +455,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Playback Polling
     
     @MainActor
     func startPlaybackPolling() {
@@ -510,8 +472,6 @@ final class SpotifyManager: NSObject {
             userInfo: nil,
             repeats: true
         )
-        
-        print("Started Spotify playback polling")
     }
     
     @objc private func handlePollingTimer(_ timer: Timer) {
@@ -531,10 +491,8 @@ final class SpotifyManager: NSObject {
         currentArtistName = nil
         currentTrackSpotifyURL = nil
         isPlaying = false
-        print("Stopped Spotify playback polling")
     }
     
-    // MARK: - Current Playback State
     
     func fetchCurrentPlayback() async {
         await ensureValidToken()
@@ -581,7 +539,6 @@ final class SpotifyManager: NSObject {
                         let artwork = images.first(where: { $0.width == 300 }) ?? images.first
                         if let urlString = artwork?.url {
                             self.currentArtworkURL = URL(string: urlString)
-                            print("Updated artwork for: \(self.currentTrackName ?? "Unknown")")
                         }
                     } else {
                         self.currentArtworkURL = nil
@@ -593,7 +550,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Shuffle Control
     
     private func enableShuffle(on deviceId: String) async {
         await ensureValidToken()
@@ -611,14 +567,12 @@ final class SpotifyManager: NSObject {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("Shuffle enabled")
                 }
             }
         } catch {
         }
     }
     
-    // MARK: - Playback Control
     
     func playTrack(trackId: String) async {
         await ensureValidToken()
@@ -627,7 +581,6 @@ final class SpotifyManager: NSObject {
         let devices = await getAvailableDevices()
         
         guard !devices.isEmpty else {
-            print("No Spotify devices found")
             await MainActor.run {
                 errorMessage = "Open Spotify app to play music"
             }
@@ -646,8 +599,6 @@ final class SpotifyManager: NSObject {
             preferredDeviceId = targetDevice.id
         }
         
-        print("Playing track on: \(targetDevice.name)")
-        
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -663,14 +614,12 @@ final class SpotifyManager: NSObject {
             let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("Track playing")
                     await MainActor.run {
                         errorMessage = nil
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -686,9 +635,7 @@ final class SpotifyManager: NSObject {
                         }
                     }
                 } else {
-                    print("Play failed: \(httpResponse.statusCode)")
                     if let errorString = String(data: data, encoding: .utf8) {
-                        print("Error: \(errorString)")
                     }
                 }
             }
@@ -731,7 +678,6 @@ final class SpotifyManager: NSObject {
         let trackCount = await getPlaylistTrackCount(playlistId: playlistId) ?? 0
         let randomOffset = trackCount > 0 ? Int.random(in: 0..<trackCount) : 0
         
-        print("Playing playlist on: \(targetDevice.name)")
         
         var request = URLRequest(url: URL(string: "\(SpotifyConfig.apiBaseURL)/me/player/play?device_id=\(targetDevice.id)")!)
         request.httpMethod = "PUT"
@@ -750,14 +696,12 @@ final class SpotifyManager: NSObject {
             let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("Playlist playing")
                     await MainActor.run {
                         errorMessage = nil
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -765,7 +709,6 @@ final class SpotifyManager: NSObject {
                         let (_, retryResponse) = try await URLSession.shared.data(for: request)
                         if let retryHttp = retryResponse as? HTTPURLResponse,
                            retryHttp.statusCode == 204 || retryHttp.statusCode == 200 {
-                            print("Playlist playing (retry)")
                             await MainActor.run {
                                 errorMessage = nil
                                 isPlaying = true
@@ -797,13 +740,11 @@ final class SpotifyManager: NSObject {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("Paused")
                     await MainActor.run {
                         isPlaying = false
                         stopPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -836,13 +777,11 @@ final class SpotifyManager: NSObject {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 204 || httpResponse.statusCode == 200 {
-                    print("Resumed playback")
                     await MainActor.run {
                         isPlaying = true
                         startPlaybackPolling()
                     }
                 } else if httpResponse.statusCode == 401 {
-                    print("Token expired, retrying...")
                     await refreshAccessToken()
                     
                     if let newToken = self.accessToken {
@@ -864,7 +803,6 @@ final class SpotifyManager: NSObject {
     }
 }
 
-// MARK: - Response Models
 
 struct TokenResponse: Codable {
     let access_token: String
@@ -879,7 +817,6 @@ struct SpotifyErrorResponse: Codable {
     let error_description: String?
 }
 
-// MARK: - Playlist Models
 
 struct PlaylistResponse: Codable {
     let items: [SpotifyPlaylist]
@@ -901,7 +838,6 @@ struct SpotifyImage: Codable {
     let width: Int?
 }
 
-// MARK: - Track Models
 
 struct TrackSearchResponse: Codable {
     let tracks: TrackSearchResults
@@ -930,7 +866,6 @@ struct SpotifyArtist: Codable {
     let name: String
 }
 
-// MARK: - Device Models
 
 struct DeviceResponse: Codable {
     let devices: [SpotifyDevice]
@@ -943,7 +878,6 @@ struct SpotifyDevice: Codable, Identifiable {
     let is_active: Bool
 }
 
-// MARK: - Current Playback Models
 
 struct CurrentPlaybackResponse: Codable {
     let is_playing: Bool
@@ -965,8 +899,6 @@ struct SpotifyAlbum: Codable {
 struct SpotifyExternalURLs: Codable {
     let spotify: String?
 }
-
-// MARK: - Data Extension for Base64URL Encoding
 
 extension Data {
     func base64URLEncodedString() -> String {

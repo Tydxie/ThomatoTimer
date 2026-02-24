@@ -5,10 +5,9 @@
 //  Created by Thomas Xie on 2025/12/07.
 //
 
-#if os(macOS)
+
 import SwiftUI
 
-// MARK: - Shared popover size for ALL macOS sheets & dropdowns
 enum MacPopoverLayout {
     static let width: CGFloat = 380
     static let height: CGFloat = 620
@@ -25,7 +24,7 @@ struct MacMenuPopoverView: View {
     @State private var showingSettings = false
     @State private var showingProjectList = false
     
-    // MARK: - Computed helpers
+    
     
     private var currentArtworkURL: URL? {
         switch selectedService {
@@ -57,7 +56,6 @@ struct MacMenuPopoverView: View {
         }
     }
     
-    // MARK: - Body
     
     var body: some View {
         VStack(spacing: 0) {
@@ -158,11 +156,11 @@ struct MacMenuPopoverView: View {
             .padding(.bottom, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        // MARK: - Fixed dropdown size
+        
         .frame(width: MacPopoverLayout.width,
                height: MacPopoverLayout.height)
         
-        // MARK: - Blur material
+        
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(4)
@@ -174,10 +172,11 @@ struct MacMenuPopoverView: View {
             viewModel.selectedService = newValue
         }
         
-        // MARK: - Sheets
+        
         .sheet(isPresented: $showingSettings) {
             SettingsView(
                 viewModel: viewModel,
+                timerState: viewModel.timerState,
                 spotifyManager: spotifyManager,
                 appleMusicManager: appleMusicManager,
                 selectedService: $selectedService
@@ -189,7 +188,7 @@ struct MacMenuPopoverView: View {
         }
     }
     
-    // MARK: - Header
+    
     
     private var header: some View {
         HStack(spacing: 8) {
@@ -216,7 +215,6 @@ struct MacMenuPopoverView: View {
         )
     }
     
-    // MARK: - Artwork
     
     @ViewBuilder
     private var artworkImageView: some View {
@@ -234,7 +232,6 @@ struct MacMenuPopoverView: View {
         }
     }
     
-    // MARK: - Spotify Attribution
     
     private var spotifyAttribution: some View {
         Button { openInSpotify() } label: {
@@ -270,4 +267,41 @@ struct MacMenuPopoverView: View {
     }
 }
 
-#endif
+struct ProjectProgressToolbar: View {
+    let project: Project
+    @State private var statsManager = StatisticsManager.shared
+
+    var body: some View {
+        let totalHours = Int(statsManager.totalHoursForProject(project.id))
+        let nextMilestone = Milestone.nextMilestone(for: totalHours)
+        let targetHours = nextMilestone?.hours ?? 2000
+        let progress = Double(totalHours) / Double(targetHours)
+
+        HStack(spacing: 8) {
+            Text(project.displayName)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: 80, alignment: .trailing)
+
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 60, height: 6)
+
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.thTeal)
+                    .frame(width: 60 * min(progress, 1.0), height: 6)
+            }
+
+            Text("\(totalHours)h/\(targetHours)h")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .monospacedDigit()
+                .frame(width: 55, alignment: .leading)
+        }
+    }
+}
+
+
