@@ -176,6 +176,7 @@ struct MacMenuPopoverView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(
                 viewModel: viewModel,
+                timerState: viewModel.timerState,
                 spotifyManager: spotifyManager,
                 appleMusicManager: appleMusicManager,
                 selectedService: $selectedService

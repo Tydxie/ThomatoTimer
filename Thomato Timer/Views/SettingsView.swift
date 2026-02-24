@@ -11,6 +11,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     
     @ObservedObject var viewModel: TimerViewModel
+    @ObservedObject var timerState: TimerState
+    
     @Bindable var spotifyManager: SpotifyManager
     @Bindable var appleMusicManager: AppleMusicManager
     @Binding var selectedService: MusicService
@@ -51,7 +53,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Work Session (Mins):")
                                     .frame(width: 180, alignment: .leading)
-                                TextField("Minutes", value: $viewModel.timerState.workDuration, format: .number)
+                                TextField("Minutes", value: $timerState.workDuration, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 60)
                             }
@@ -59,7 +61,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Short Break (Mins):")
                                     .frame(width: 180, alignment: .leading)
-                                TextField("Minutes", value: $viewModel.timerState.shortBreakDuration, format: .number)
+                                TextField("Minutes", value: $timerState.shortBreakDuration, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 60)
                             }
@@ -67,7 +69,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Long Break (Mins):")
                                     .frame(width: 180, alignment: .leading)
-                                TextField("Minutes", value: $viewModel.timerState.longBreakDuration, format: .number)
+                                TextField("Minutes", value: $timerState.longBreakDuration, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 60)
                             }
@@ -75,7 +77,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Sessions until long break:")
                                     .frame(width: 180, alignment: .leading)
-                                TextField("Count", value: $viewModel.timerState.sessionsUntilLongBreak, format: .number)
+                                TextField("Count", value: $timerState.sessionsUntilLongBreak, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 60)
                             }
@@ -83,7 +85,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Warmup Duration:")
                                     .frame(width: 180, alignment: .leading)
-                                Picker(selection: $viewModel.timerState.warmupDuration, label: Text("")) {
+                                Picker(selection: $timerState.warmupDuration, label: Text("")) {
                                     Text("None").tag(0)
                                     Text("5 min").tag(5)
                                     Text("10 min").tag(10)
@@ -345,11 +347,3 @@ struct SettingsView: View {
     }
 }
 
-#Preview {
-    SettingsView(
-        viewModel: TimerViewModel(),
-        spotifyManager: SpotifyManager(),
-        appleMusicManager: AppleMusicManager(),
-        selectedService: .constant(.none)
-    )
-}
