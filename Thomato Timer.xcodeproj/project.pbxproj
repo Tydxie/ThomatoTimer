@@ -72,7 +72,7 @@
 		6821C6182EEC608E0070CD7E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6821C61A2EEC608E0070CD7E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		68529F1B2EE63CDE00EE10E7 /* MacMenuPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMenuPopoverView.swift; sourceTree = "<group>"; };
-		6871CBA02EDA4F3E00C374C2 /* Thomato-Timer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Thomato-Timer-Info.plist"; sourceTree = SOURCE_ROOT; };
+		6871CBA02EDA4F3E00C374C2 /* Thomato-Timer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Thomato-Timer-Info.plist"; sourceTree = SOURCE_ROOT; };
 		6871CBA32EDA72B000C374C2 /* MusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicService.swift; sourceTree = "<group>"; };
 		6871CBA52EDA72E000C374C2 /* AppleMusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicManager.swift; sourceTree = "<group>"; };
 		6871CBA72EDA751300C374C2 /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
@@ -152,6 +152,62 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		68D37B4D2F4DE42500684ED9 /* Timer */ = {
+			isa = PBXGroup;
+			children = (
+				68F984BF2ED9F64A00C1757B /* TimerViewModel.swift */,
+				68F984BD2ED9F5D100C1757B /* TimerState.swift */,
+			);
+			path = Timer;
+			sourceTree = "<group>";
+		};
+		68D37B4E2F4DE4A200684ED9 /* Music */ = {
+			isa = PBXGroup;
+			children = (
+				68F984C32EDA418800C1757B /* SpotifyConfig.swift */,
+				68F984C52EDA41A400C1757B /* SpotifySecrets.swift */,
+				68F984C72EDA421800C1757B /* SpotifyManager.swift */,
+				6871CBA32EDA72B000C374C2 /* MusicService.swift */,
+				6871CBA52EDA72E000C374C2 /* AppleMusicManager.swift */,
+			);
+			path = Music;
+			sourceTree = "<group>";
+		};
+		68D37B4F2F4DE4DF00684ED9 /* Project */ = {
+			isa = PBXGroup;
+			children = (
+				6871CBB32EDA81AF00C374C2 /* Project.swift */,
+				6871CBB52EDA821500C374C2 /* ProjectManager.swift */,
+			);
+			path = Project;
+			sourceTree = "<group>";
+		};
+		68D37B502F4DE55300684ED9 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				6871CBAF2EDA7E9E00C374C2 /* StatisticsManager.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		68D37B512F4DE5C900684ED9 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				6871CBA72EDA751300C374C2 /* ColorTheme.swift */,
+				6871CBAB2EDA786500C374C2 /* MenuBarManager.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		68D37B522F4DE5FE00684ED9 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				689DBBAE2EF940DF000B85F6 /* NotificationNames.swift */,
+				6871CBA92EDA77B200C374C2 /* NotificationManager.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
 		68F9849E2ED9F4AA00C1757B = {
 			isa = PBXGroup;
 			children = (
@@ -175,7 +231,11 @@
 			isa = PBXGroup;
 			children = (
 				6871CBA02EDA4F3E00C374C2 /* Thomato-Timer-Info.plist */,
-				68F984BC2ED9F50300C1757B /* Utilities */,
+				68D37B522F4DE5FE00684ED9 /* Notifications */,
+				68D37B512F4DE5C900684ED9 /* Support */,
+				68D37B502F4DE55300684ED9 /* Statistics */,
+				68D37B4D2F4DE42500684ED9 /* Timer */,
+				68F984BC2ED9F50300C1757B /* App */,
 				68F984BB2ED9F4FA00C1757B /* Views */,
 				68F984BA2ED9F4EE00C1757B /* ViewModels */,
 				68F984B92ED9F4E900C1757B /* Models */,
@@ -183,6 +243,8 @@
 				68F984B02ED9F4AC00C1757B /* Thomato_Timer.entitlements */,
 				68F984B12ED9F4AC00C1757B /* Preview Content */,
 				6817FFEA2EF9E7C30081F263 /* SharedWidgetTypes.swift */,
+				68D37B4E2F4DE4A200684ED9 /* Music */,
+				68D37B4F2F4DE4DF00684ED9 /* Project */,
 			);
 			path = "Thomato Timer";
 			sourceTree = "<group>";
@@ -198,7 +260,6 @@
 		68F984B92ED9F4E900C1757B /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				68F984BD2ED9F5D100C1757B /* TimerState.swift */,
 				689DBBA82EF8A71A000B85F6 /* SharedTimerState.swift */,
 			);
 			path = Models;
@@ -207,7 +268,6 @@
 		68F984BA2ED9F4EE00C1757B /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				68F984BF2ED9F64A00C1757B /* TimerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -225,26 +285,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		68F984BC2ED9F50300C1757B /* Utilities */ = {
+		68F984BC2ED9F50300C1757B /* App */ = {
 			isa = PBXGroup;
 			children = (
 				68F984AA2ED9F4AA00C1757B /* Thomato_TimerApp.swift */,
-				68F984C32EDA418800C1757B /* SpotifyConfig.swift */,
-				68F984C52EDA41A400C1757B /* SpotifySecrets.swift */,
-				68F984C72EDA421800C1757B /* SpotifyManager.swift */,
-				6871CBA32EDA72B000C374C2 /* MusicService.swift */,
-				6871CBA52EDA72E000C374C2 /* AppleMusicManager.swift */,
-				6871CBA72EDA751300C374C2 /* ColorTheme.swift */,
-				6871CBA92EDA77B200C374C2 /* NotificationManager.swift */,
-				6871CBAB2EDA786500C374C2 /* MenuBarManager.swift */,
 				6871CBAD2EDA7C7500C374C2 /* AppDelegate.swift */,
-				6871CBAF2EDA7E9E00C374C2 /* StatisticsManager.swift */,
-				6871CBB32EDA81AF00C374C2 /* Project.swift */,
-				6871CBB52EDA821500C374C2 /* ProjectManager.swift */,
 				689DBB9D2EF891FE000B85F6 /* TimerAttributes.swift */,
-				689DBBAE2EF940DF000B85F6 /* NotificationNames.swift */,
 			);
-			path = Utilities;
+			path = App;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
