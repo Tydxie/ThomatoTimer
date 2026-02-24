@@ -8,9 +8,7 @@
 import Foundation
 import MusicKit
 import Observation
-#if os(iOS)
-import AVFoundation
-#endif
+
 
 struct AppleMusicPlaylistItem: Identifiable, Hashable {
     let id: String
@@ -39,7 +37,6 @@ struct AppleMusicSongItem: Identifiable {
 
 @Observable
 final class AppleMusicManager {
-    // MARK: - Authorization / Basic State
     var isAuthorized = false
     
     var selectedWarmupSongId: String?
@@ -56,33 +53,12 @@ final class AppleMusicManager {
     var searchResults: [AppleMusicSongItem] = []
     
     var errorMessage: String?
-    
-    // MARK: - Artwork / Playback State
     var currentArtworkURL: URL?
     var isPlaying = false
     
-    #if os(iOS)
+ 
     private let artworkSize = 1024
-    #else
-    private let artworkSize = 1024
-    #endif
     
-    // MARK: - Audio Session Setup
-    
-    #if os(iOS)
-    func setupAudioSession() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default)
-            try audioSession.setActive(true)
-            print("Audio session activated for background playback")
-        } catch {
-            print("Failed to set up audio session: \(error)")
-        }
-    }
-    #endif
-    
-    // MARK: - Warmup
     
     func warmup() {
         Task {
@@ -95,7 +71,6 @@ final class AppleMusicManager {
         }
     }
     
-    // MARK: - Authorization
     
     func checkAuthorization() async {
         let status = await MusicAuthorization.request()
@@ -121,13 +96,8 @@ final class AppleMusicManager {
         if isAuthorized {
             await fetchUserPlaylists()
             warmup()
-            #if os(iOS)
-            setupAudioSession()
-            #endif
         }
     }
-    
-    // MARK: - Fetch User Playlists
     
     func fetchUserPlaylists() async {
         guard isAuthorized else { return }
@@ -160,8 +130,6 @@ final class AppleMusicManager {
             }
         }
     }
-    
-    // MARK: - Search Songs
     
     func searchSongs(query: String) async {
         guard isAuthorized,
@@ -199,8 +167,6 @@ final class AppleMusicManager {
             }
         }
     }
-    
-    // MARK: - Artwork Helpers
     
     func getSongArtwork(songId: String) async -> URL? {
         guard isAuthorized else { return nil }
@@ -248,7 +214,6 @@ final class AppleMusicManager {
         isPlaying = false
     }
     
-    // MARK: - Playback (Song)
     
     func playSong(id: String) async {
         guard isAuthorized else {
@@ -258,9 +223,6 @@ final class AppleMusicManager {
             return
         }
         
-        #if os(iOS)
-        setupAudioSession()
-        #endif
         
         do {
             let request = MusicCatalogResourceRequest<Song>(
@@ -296,8 +258,6 @@ final class AppleMusicManager {
         }
     }
     
-    // MARK: - Playback (Playlist)
-    
     func playPlaylist(id: String) async {
         guard isAuthorized else {
             await MainActor.run {
@@ -306,9 +266,6 @@ final class AppleMusicManager {
             return
         }
         
-        #if os(iOS)
-        setupAudioSession()
-        #endif
         
         do {
             if let playlist = libraryPlaylists.first(where: { $0.id.rawValue == id }) {
@@ -369,7 +326,6 @@ final class AppleMusicManager {
         }
     }
     
-    // MARK: - Pause / Resume
     
     func pause() {
         ApplicationMusicPlayer.shared.pause()
@@ -379,9 +335,6 @@ final class AppleMusicManager {
     
     func play() {
         Task {
-            #if os(iOS)
-            setupAudioSession()
-            #endif
             
             do {
                 try await ApplicationMusicPlayer.shared.play()
@@ -394,8 +347,6 @@ final class AppleMusicManager {
             }
         }
     }
-    
-    // MARK: - Clear Selection
     
     func clearWarmupSong() {
         selectedWarmupSongId = nil

@@ -12,18 +12,17 @@ import CryptoKit
 
 @Observable
 final class SpotifyManager: NSObject {
-    // MARK: - Published State
     var isAuthenticated = false
     var accessToken: String?
     var refreshToken: String?
     var tokenExpirationDate: Date?
     var errorMessage: String?
     
-    // MARK: - Private PKCE State
+
     private var codeVerifier: String?
     private var state: String?
     
-    // MARK: - Playlist & Track State
+
     var playlists: [SpotifyPlaylist] = []
     var selectedWorkPlaylistId: String?
     var selectedBreakPlaylistId: String?
@@ -31,7 +30,7 @@ final class SpotifyManager: NSObject {
     var warmupTrackName: String?
     var searchResults: [SpotifyTrack] = []
     
-    // MARK: - Current Playback State (for artwork)
+
     var currentArtworkURL: URL?
     var isPlaying = false
     var currentTrackName: String?
@@ -39,14 +38,13 @@ final class SpotifyManager: NSObject {
     var currentTrackSpotifyURL: String?
     private var currentTrackId: String?
     
-    // MARK: - Device Preference
+
     private var preferredDeviceId: String?
     
-    // MARK: - Playback Polling
+
     private var pollingTimer: Timer?
     private var isPollingEnabled = false
     
-    // MARK: - Authentication Flow
     
     @MainActor
     func authenticate() {
@@ -74,11 +72,8 @@ final class SpotifyManager: NSObject {
             return
         }
         
-        #if os(macOS)
         NSWorkspace.shared.open(url)
-        #else
-        UIApplication.shared.open(url)
-        #endif
+
     }
     
     func handleRedirect(url: URL) async {
@@ -246,7 +241,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - PKCE Helper Functions
     
     private func generateCodeVerifier() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
@@ -266,7 +260,7 @@ final class SpotifyManager: NSObject {
         return Data(bytes).base64URLEncodedString()
     }
     
-    // MARK: - Testing
+
     func testConfiguration() -> String {
         """
         Spotify Configuration (Works as of 11/25/2025)
@@ -280,7 +274,6 @@ final class SpotifyManager: NSObject {
         """
     }
     
-    // MARK: - Playlist Management
     
     func fetchPlaylists() async {
         await ensureValidToken()
@@ -346,7 +339,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Playlist Metadata
     
     private func getPlaylistTrackCount(playlistId: String) async -> Int? {
         await ensureValidToken()
@@ -379,7 +371,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Track Search
     
     func searchTracks(query: String) async {
         await ensureValidToken()
@@ -453,7 +444,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Device Management
     
     func getAvailableDevices() async -> [SpotifyDevice] {
         guard let accessToken = self.accessToken else { return [] }
@@ -477,7 +467,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Token Management
 
     private func ensureValidToken() async {
         guard let expirationDate = tokenExpirationDate else {
@@ -492,7 +481,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Playback Polling
     
     @MainActor
     func startPlaybackPolling() {
@@ -534,7 +522,6 @@ final class SpotifyManager: NSObject {
         print("Stopped Spotify playback polling")
     }
     
-    // MARK: - Current Playback State
     
     func fetchCurrentPlayback() async {
         await ensureValidToken()
@@ -593,7 +580,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Shuffle Control
     
     private func enableShuffle(on deviceId: String) async {
         await ensureValidToken()
@@ -618,7 +604,6 @@ final class SpotifyManager: NSObject {
         }
     }
     
-    // MARK: - Playback Control
     
     func playTrack(trackId: String) async {
         await ensureValidToken()
@@ -864,7 +849,6 @@ final class SpotifyManager: NSObject {
     }
 }
 
-// MARK: - Response Models
 
 struct TokenResponse: Codable {
     let access_token: String
@@ -879,7 +863,6 @@ struct SpotifyErrorResponse: Codable {
     let error_description: String?
 }
 
-// MARK: - Playlist Models
 
 struct PlaylistResponse: Codable {
     let items: [SpotifyPlaylist]
@@ -901,7 +884,6 @@ struct SpotifyImage: Codable {
     let width: Int?
 }
 
-// MARK: - Track Models
 
 struct TrackSearchResponse: Codable {
     let tracks: TrackSearchResults
@@ -930,7 +912,6 @@ struct SpotifyArtist: Codable {
     let name: String
 }
 
-// MARK: - Device Models
 
 struct DeviceResponse: Codable {
     let devices: [SpotifyDevice]
@@ -943,7 +924,6 @@ struct SpotifyDevice: Codable, Identifiable {
     let is_active: Bool
 }
 
-// MARK: - Current Playback Models
 
 struct CurrentPlaybackResponse: Codable {
     let is_playing: Bool
@@ -966,7 +946,6 @@ struct SpotifyExternalURLs: Codable {
     let spotify: String?
 }
 
-// MARK: - Data Extension for Base64URL Encoding
 
 extension Data {
     func base64URLEncodedString() -> String {
