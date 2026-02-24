@@ -165,7 +165,6 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Spotify Section
     
     @ViewBuilder
     private var spotifySectionMac: some View {
@@ -269,7 +268,6 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Apple Music Section
     
     @ViewBuilder
     private var appleMusicSectionMac: some View {
