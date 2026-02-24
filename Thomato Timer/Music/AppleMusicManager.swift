@@ -35,7 +35,7 @@ struct AppleMusicSongItem: Identifiable {
 }
 
 @Observable
-final class AppleMusicManager {
+final class AppleMusicManager: MusicPlayerService {
     var isAuthorized = false
 
     var selectedWarmupSongId: String?
